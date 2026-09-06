@@ -1,35 +1,31 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { updatePatientCase } from '@/app/lib/firebase/services';
 
-const STEPS = [
-  { id: 1, label: 'About You' },
-  { id: 2, label: 'Your Situation' },
-  { id: 3, label: 'Medical Details' },
-  { id: 4, label: 'Documents' },
-  { id: 5, label: 'Preferences' },
-  { id: 6, label: 'Consent' },
-];
+const CARE_OUTSIDE_OPTIONS = ['Yes', 'No', 'Maybe / Depends on options'];
 
-const CARE_OUTSIDE_OPTIONS = ['Yes', 'No', 'Not sure'];
-
-const LOCATION_OPTIONS = [
+const DESTINATION_OPTIONS = [
+  'No preference',
   'India',
-  'Thailand',
   'Turkey',
-  'Singapore',
+  'Thailand',
   'United Arab Emirates',
-  'Open to recommendations',
+  'Germany',
+  'Spain',
+  'United Kingdom',
+  'United States',
+  'Other',
 ];
 
 const PRIORITY_OPTIONS = [
   'Treatment cost',
-  'Hospital reputation & JCI accreditation',
-  'Distance / Travel time',
-  'Family accommodation',
-  'Language support & translation',
-  'Speed of appointment access',
+  'Hospital reputation',
+  'Doctor experience',
+  'Wait times',
+  'Distance & travel ease',
+  'Language support',
 ];
 
 interface StepFiveProps {
@@ -56,8 +52,8 @@ export default function StepFivePreferences({
 }: StepFiveProps) {
   const [formData, setFormData] = useState({
     careOutsideCountry: initialData.careOutsideCountry || 'Yes',
-    preferredLocation: initialData.preferredLocation || 'Open to recommendations',
-    priorities: (initialData.priorities || ['Treatment cost', 'Hospital reputation & JCI accreditation']) as string[],
+    preferredLocation: initialData.preferredLocation || 'India',
+    priorities: (initialData.priorities || ['Treatment cost']) as string[],
   });
 
   useEffect(() => {
@@ -65,8 +61,8 @@ export default function StepFivePreferences({
       setFormData((prev) => ({
         ...prev,
         careOutsideCountry: initialData.careOutsideCountry || prev.careOutsideCountry || 'Yes',
-        preferredLocation: initialData.preferredLocation || prev.preferredLocation || 'Open to recommendations',
-        priorities: initialData.priorities || prev.priorities || ['Treatment cost', 'Hospital reputation & JCI accreditation'],
+        preferredLocation: initialData.preferredLocation || prev.preferredLocation || 'India',
+        priorities: initialData.priorities || prev.priorities || ['Treatment cost'],
       }));
     }
   }, [initialData]);
@@ -90,14 +86,11 @@ export default function StepFivePreferences({
     setFormData((prev) => ({ ...prev, careOutsideCountry: opt }));
   };
 
-  const handleLocationSelect = (loc: string) => {
-    setFormData((prev) => ({ ...prev, preferredLocation: loc }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('handleSubmit (Step 5) called, formData:', formData);
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setErrorMsg(null);
     setLoading(true);
 
@@ -130,69 +123,22 @@ export default function StepFivePreferences({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-10 px-4 sm:px-6 lg:px-8">
-      {/* Header Section */}
-      <div className="max-w-3xl mx-auto text-center space-y-3">
-        <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xss font-semibold rounded-full border border-emerald-100">
-          Start Your Healthcare Journey
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-blue-950 tracking-tight">
-          Your travel &amp; care preferences.
-        </h1>
-        <p className="text-slate-500 text-sm sm:text-base max-w-xl mx-auto">
-          Help us align hospitals, timelines, and destinations with your budget, schedule, and family needs.
-        </p>
-
-        {/* Stepper Header Bar */}
-        <div className="pt-8 pb-10">
-          <div className="flex items-center justify-between relative max-w-2xl mx-auto px-2">
-            <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-0" />
-
-            {STEPS.map((step) => {
-              const isActive = step.id === 5;
-              const isPast = step.id < 5;
-              return (
-                <div key={step.id} className="relative z-10 flex flex-col items-center group">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xss font-bold transition-all ${
-                      isActive
-                        ? 'border-2 border-emerald-600 bg-white text-emerald-700 ring-4 ring-emerald-50'
-                        : isPast
-                        ? 'bg-emerald-600 text-white'
-                        : 'border border-slate-300 bg-white text-slate-500'
-                    }`}
-                  >
-                    {step.id}
-                  </div>
-                  <span
-                    className={`mt-2 text-xss font-medium whitespace-nowrap hidden sm:block ${
-                      isActive ? 'text-emerald-700 font-bold' : 'text-slate-500'
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full">
       {/* Main Form Card */}
-      <div className="max-w-xl mx-auto bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-10 mt-2">
+      <div className="max-w-xl bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           {errorMsg && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
               {errorMsg}
             </div>
           )}
 
-          {/* Are you open to traveling abroad */}
-          <div className="space-y-2">
+          {/* Question 1: Are you open to seeking care outside your home country? */}
+          <div className="space-y-3">
             <label className="block text-sm font-semibold text-slate-800">
-              Are you willing to travel abroad for medical treatment? <span className="text-emerald-600">*</span>
+              Are you open to seeking care outside your home country?
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-wrap gap-2.5 pt-0.5">
               {CARE_OUTSIDE_OPTIONS.map((opt) => {
                 const isSelected = formData.careOutsideCountry === opt;
                 return (
@@ -200,116 +146,98 @@ export default function StepFivePreferences({
                     type="button"
                     key={opt}
                     onClick={() => handleCareOutsideSelect(opt)}
-                    className={`p-3 text-xss sm:text-sm font-medium rounded-xl border text-center transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`text-xs sm:text-sm py-2 px-5 rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-600/20 font-semibold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                        ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-semibold shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-normal'
                     }`}
                   >
-                    <span>{opt}</span>
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+                    {opt}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Preferred Destination */}
-          <div className="space-y-2">
+          {/* Question 2: Preferred destination (if any) */}
+          <div className="space-y-2 pt-1">
             <label className="block text-sm font-semibold text-slate-800">
-              Preferred Country or Destination
+              Preferred destination (if any)
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              {LOCATION_OPTIONS.map((loc) => {
-                const isSelected = formData.preferredLocation === loc;
-                return (
-                  <button
-                    type="button"
-                    key={loc}
-                    onClick={() => handleLocationSelect(loc)}
-                    className={`p-3 text-xss sm:text-sm font-medium rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                      isSelected
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-600/20 font-semibold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                    }`}
-                  >
-                    <span>{loc}</span>
-                    <div
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-600 text-white'
-                          : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {isSelected && <span className="w-1 h-1 rounded-full bg-white" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Priorities */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-800">
-              What matters most to you? (Select all that apply)
-            </label>
-            <div className="space-y-2">
-              {PRIORITY_OPTIONS.map((p) => {
-                const isSelected = formData.priorities.includes(p);
-                return (
-                  <button
-                    type="button"
-                    key={p}
-                    onClick={() => togglePriority(p)}
-                    className={`w-full p-3.5 text-xss sm:text-sm font-medium rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                      isSelected
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-600/20 font-semibold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                    }`}
-                  >
-                    <span>{p}</span>
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                        isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {isSelected && <span className="text-[10px] leading-none font-bold">✓</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-4 flex items-center justify-between gap-4">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-6 py-3.5 border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+            <div className="relative">
+              <select
+                value={formData.preferredLocation}
+                onChange={(e) => setFormData((prev) => ({ ...prev, preferredLocation: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
-                Back
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving Preferences...
-                </>
-              ) : (
-                'Review & Consent (Step 6)'
-              )}
-            </button>
+                {DESTINATION_OPTIONS.map((loc) => (
+                  <option key={loc} value={loc === 'No preference' ? '' : loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Question 3: What matters most to you? */}
+          <div className="space-y-2 pt-1">
+            <div>
+              <label className="block text-sm font-semibold text-slate-800">
+                What matters most to you?
+              </label>
+              <p className="text-xs text-slate-500 mt-0.5">Select all that apply</p>
+            </div>
+            <div className="flex flex-wrap gap-2.5 pt-1">
+              {PRIORITY_OPTIONS.map((priority) => {
+                const isSelected = formData.priorities.includes(priority);
+                return (
+                  <button
+                    type="button"
+                    key={priority}
+                    onClick={() => togglePriority(priority)}
+                    className={`text-xs sm:text-sm py-2 px-4 rounded-full border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-semibold shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-normal'
+                    }`}
+                  >
+                    {priority}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </form>
+      </div>
+
+      {/* Bottom Actions Bar */}
+      <div className="flex items-center justify-between max-w-xl mt-8">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            ← Back
+          </button>
+        ) : (
+          <div />
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-9 py-2.5 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            'Continue'
+          )}
+        </button>
       </div>
     </div>
   );

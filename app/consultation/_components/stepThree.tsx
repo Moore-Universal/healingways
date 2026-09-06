@@ -1,16 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { updatePatientCase } from '@/app/lib/firebase/services';
-
-const STEPS = [
-  { id: 1, label: 'About You' },
-  { id: 2, label: 'Your Situation' },
-  { id: 3, label: 'Medical Details' },
-  { id: 4, label: 'Documents' },
-  { id: 5, label: 'Preferences' },
-  { id: 6, label: 'Consent' },
-];
 
 const DIAGNOSIS_OPTIONS = ['Yes', 'No', 'Unsure'];
 
@@ -71,10 +63,11 @@ export default function StepThreeMedicalDetails({
     setFormData((prev) => ({ ...prev, treatmentStatus: status }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('handleSubmit (Step 3) called, formData:', formData);
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setErrorMsg(null);
     setLoading(true);
 
@@ -94,7 +87,7 @@ export default function StepThreeMedicalDetails({
         });
       }
     } catch (err: any) {
-      console.warn('Error in Step 3 (continuing):', err);
+      console.warn('Error in Step 2/3 (continuing):', err);
       if (onNext) {
         onNext({
           ...formData,
@@ -107,69 +100,22 @@ export default function StepThreeMedicalDetails({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-10 px-4 sm:px-6 lg:px-8">
-      {/* Header Section */}
-      <div className="max-w-3xl mx-auto text-center space-y-3">
-        <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xss font-semibold rounded-full border border-emerald-100">
-          Start Your Healthcare Journey
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-blue-950 tracking-tight">
-          Medical details &amp; history.
-        </h1>
-        <p className="text-slate-500 text-sm sm:text-base max-w-xl mx-auto">
-          Share your confirmed or preliminary medical diagnosis so our team can match you with the right specialist.
-        </p>
-
-        {/* Stepper Header Bar */}
-        <div className="pt-8 pb-10">
-          <div className="flex items-center justify-between relative max-w-2xl mx-auto px-2">
-            <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-0" />
-
-            {STEPS.map((step) => {
-              const isActive = step.id === 3;
-              const isPast = step.id < 3;
-              return (
-                <div key={step.id} className="relative z-10 flex flex-col items-center group">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xss font-bold transition-all ${
-                      isActive
-                        ? 'border-2 border-emerald-600 bg-white text-emerald-700 ring-4 ring-emerald-50'
-                        : isPast
-                        ? 'bg-emerald-600 text-white'
-                        : 'border border-slate-300 bg-white text-slate-500'
-                    }`}
-                  >
-                    {step.id}
-                  </div>
-                  <span
-                    className={`mt-2 text-xss font-medium whitespace-nowrap hidden sm:block ${
-                      isActive ? 'text-emerald-700 font-bold' : 'text-slate-500'
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full">
       {/* Main Form Card */}
-      <div className="max-w-xl mx-auto bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-10 mt-2">
+      <div className="max-w-xl bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           {errorMsg && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
               {errorMsg}
             </div>
           )}
 
-          {/* Do you have a formal diagnosis */}
-          <div className="space-y-2">
+          {/* Question 1: Have you received a medical diagnosis? */}
+          <div className="space-y-3">
             <label className="block text-sm font-semibold text-slate-800">
-              Do you have an existing medical diagnosis? <span className="text-emerald-600">*</span>
+              Have you received a medical diagnosis?
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-wrap gap-2.5 pt-0.5">
               {DIAGNOSIS_OPTIONS.map((opt) => {
                 const isSelected = formData.hasDiagnosis === opt;
                 return (
@@ -177,40 +123,39 @@ export default function StepThreeMedicalDetails({
                     type="button"
                     key={opt}
                     onClick={() => handleDiagnosisToggle(opt)}
-                    className={`p-3 text-xss sm:text-sm font-medium rounded-xl border text-center transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`text-xs sm:text-sm py-2 px-5 rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-600/20 font-semibold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                        ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-semibold shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-normal'
                     }`}
                   >
-                    <span>{opt}</span>
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+                    {opt}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Specific Diagnosis Name */}
-          <div className="space-y-1.5">
+          {/* Question 2: Diagnosis (if known) */}
+          <div className="space-y-2 pt-1">
             <label className="block text-sm font-semibold text-slate-800">
-              Specific Diagnosis or Condition (if known)
+              Diagnosis (if known)
             </label>
             <input
               type="text"
               value={formData.diagnosis}
               onChange={(e) => setFormData((prev) => ({ ...prev, diagnosis: e.target.value }))}
-              placeholder="e.g. Stage 2 Breast Cancer, Lumbar Herniation, Knee Osteoarthritis"
-              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-400"
+              placeholder="e.g. Coronary artery disease"
+              className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          {/* Current Treatment Status */}
-          <div className="space-y-2">
+          {/* Question 3: Current treatment status */}
+          <div className="space-y-3 pt-1">
             <label className="block text-sm font-semibold text-slate-800">
-              What is your current treatment status? <span className="text-emerald-600">*</span>
+              Current treatment status
             </label>
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2.5 pt-0.5">
               {TREATMENT_STATUSES.map((status) => {
                 const isSelected = formData.treatmentStatus === status;
                 return (
@@ -218,56 +163,49 @@ export default function StepThreeMedicalDetails({
                     type="button"
                     key={status}
                     onClick={() => handleTreatmentStatusSelect(status)}
-                    className={`w-full p-3.5 text-xss sm:text-sm font-medium rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                    className={`text-xs sm:text-sm py-2 px-4 rounded-full border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-600/20 font-semibold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                        ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-semibold shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-normal'
                     }`}
                   >
-                    <span>{status}</span>
-                    <div
-                      className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-600 text-white'
-                          : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
+                    {status}
                   </button>
                 );
               })}
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="pt-4 flex items-center justify-between gap-4">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-6 py-3.5 border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
-              >
-                Back
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving Details...
-                </>
-              ) : (
-                'Continue to Step 4 (Documents)'
-              )}
-            </button>
-          </div>
         </form>
+      </div>
+
+      {/* Bottom Actions Bar */}
+      <div className="flex items-center justify-between max-w-xl mt-8">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            ← Back
+          </button>
+        ) : (
+          <div />
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-9 py-2.5 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            'Continue'
+          )}
+        </button>
       </div>
     </div>
   );
