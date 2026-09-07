@@ -925,7 +925,13 @@ export default function AdminCaseDetailPage() {
             {/* Tab 2: Medical Itinerary */}
             <button
               type="button"
-              onClick={() => setActiveWorkstationTab('Medical Itinerary')}
+              onClick={() => {
+                if (!caseRecord.hospital_accepted) {
+                  showToast('Please have the patient accept the hospital recommendation before advancing.');
+                  return;
+                }
+                setActiveWorkstationTab('Medical Itinerary');
+              }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                 activeWorkstationTab === 'Medical Itinerary'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
@@ -964,7 +970,13 @@ export default function AdminCaseDetailPage() {
             {/* Tab 3: Accommodation & Visa */}
             <button
               type="button"
-              onClick={() => setActiveWorkstationTab('Accommodation & Visa')}
+              onClick={() => {
+                if (!caseRecord.itinerary_confirmed_by_patient) {
+                  showToast('Please have the patient confirm the Medical Itinerary first.');
+                  return;
+                }
+                setActiveWorkstationTab('Accommodation & Visa');
+              }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                 activeWorkstationTab === 'Accommodation & Visa'
                   ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
@@ -1003,7 +1015,13 @@ export default function AdminCaseDetailPage() {
             {/* Tab 4: Travel Preparation */}
             <button
               type="button"
-              onClick={() => setActiveWorkstationTab('Travel Preparation')}
+              onClick={() => {
+                if (!caseRecord.accommodation_visa_confirmed_by_patient) {
+                  showToast('Please have the patient confirm the Accommodation & Visa arrangements first.');
+                  return;
+                }
+                setActiveWorkstationTab('Travel Preparation');
+              }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                 activeWorkstationTab === 'Travel Preparation'
                   ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'

@@ -10,6 +10,8 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  addDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 import {
   signOut,
@@ -41,6 +43,19 @@ export interface Hospital {
   accreditation?: string;
   estimatedCost?: string;
   imageUrl?: string;
+}
+
+export interface Accommodation {
+  id: string;
+  image: string;
+  title: string;
+  location: string;
+  tags: string[];
+  description: string;
+  proximity: string;
+  features: string[];
+  price: string;
+  pricePeriod: string;
 }
 
 export interface CaseDocument {
@@ -1735,4 +1750,34 @@ export async function getAdminConversations(): Promise<
           : "Thanks for reaching out — we've received your consultation request and will begin reviewing your case shortly."),
     };
   });
+}
+
+export async function getHospitals(): Promise<Hospital[]> {
+  const q = query(collection(db, 'hospitals'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Hospital));
+}
+
+export async function addHospital(hospital: Omit<Hospital, 'id'>): Promise<string> {
+  const docRef = await addDoc(collection(db, 'hospitals'), hospital);
+  return docRef.id;
+}
+
+export async function deleteHospital(hospitalId: string): Promise<void> {
+  await deleteDoc(doc(db, 'hospitals', hospitalId));
+}
+
+export async function getAccommodations(): Promise<Accommodation[]> {
+  const q = query(collection(db, 'accommodations'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Accommodation));
+}
+
+export async function addAccommodation(accommodation: Omit<Accommodation, 'id'>): Promise<string> {
+  const docRef = await addDoc(collection(db, 'accommodations'), accommodation);
+  return docRef.id;
+}
+
+export async function deleteAccommodation(accommodationId: string): Promise<void> {
+  await deleteDoc(doc(db, 'accommodations', accommodationId));
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -18,7 +18,7 @@ import {
 import { 
   PatientCase, 
   Hospital, 
-  DEFAULT_HOSPITALS, 
+  getHospitals,
   adminSetRecommendedHospitals 
 } from '@/app/lib/firebase/services';
 
@@ -35,37 +35,28 @@ export default function AdminHospitalRecommendations({
   showToast,
   onAdvanceStage,
 }: AdminHospitalRecommendationsProps) {
-  // Current recommended list or default
-  const existingRecommended: Hospital[] = 
-    caseRecord.recommended_hospitals && caseRecord.recommended_hospitals.length > 0
-      ? caseRecord.recommended_hospitals
-      : DEFAULT_HOSPITALS.slice(0, 2);
-
+  const [availableHospitals, setAvailableHospitals] = useState<Hospital[]>([]);
   const [selectedHospitalIds, setSelectedHospitalIds] = useState<string[]>(() =>
-    existingRecommended.map((h) => h.id)
+    (caseRecord.recommended_hospitals || []).map((h) => h.id)
   );
-
-  const [availableHospitals, setAvailableHospitals] = useState<Hospital[]>(() => {
-    const map = new Map<string, Hospital>();
-    DEFAULT_HOSPITALS.forEach((h) => map.set(h.id, h));
-    if (caseRecord.recommended_hospitals) {
-      caseRecord.recommended_hospitals.forEach((h) => map.set(h.id, h));
-    }
-    return Array.from(map.values());
-  });
-
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [advancing, setAdvancing] = useState(false);
-  const [showAddCustom, setShowAddCustom] = useState(false);
 
-  // Custom hospital form
-  const [customName, setCustomName] = useState('');
-  const [customLocation, setCustomLocation] = useState('');
-  const [customCountry, setCustomCountry] = useState('');
-  const [customCost, setCustomCost] = useState('$5,000 - $8,000');
-  const [customAccreditation, setCustomAccreditation] = useState('JCI Accredited');
-  const [customSpecialties, setCustomSpecialties] = useState('Orthopedic, Joint Surgery');
-  const [customDesc, setCustomDesc] = useState('');
+  useEffect(() => {
+    async function loadHospitals() {
+      setLoading(true);
+      try {
+        const h = await getHospitals();
+        setAvailableHospitals(h);
+      } catch (err) {
+        showToast('Error loading hospital catalogue.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadHospitals();
+  }, []);
 
   const toggleHospital = (hId: string) => {
     if (selectedHospitalIds.includes(hId)) {
@@ -132,9 +123,13 @@ export default function AdminHospitalRecommendations({
   const handleQuickAdvance = async () => {
     setAdvancing(true);
     try {
-      // Pick first selected hospital as accepted if not selected yet
       const selectedHospitals = availableHospitals.filter((h) => selectedHospitalIds.includes(h.id));
-      const firstHosp = selectedHospitals[0] || DEFAULT_HOSPITALS[0];
+      const firstHosp = selectedHospitals[0];
+      
+      if (!firstHosp) {
+        showToast('Please select at least one hospital.');
+        return;
+      }
       
       await onUpdateCase({
         recommended_hospitals: selectedHospitals,
@@ -248,14 +243,6 @@ export default function AdminHospitalRecommendations({
           <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
             Select Hospitals to Offer to Patient ({selectedHospitalIds.length} Selected)
           </label>
-          <button
-            type="button"
-            onClick={() => setShowAddCustom(!showAddCustom)}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Custom Hospital</span>
-          </button>
         </div>
 
         {/* Add custom hospital form */}
