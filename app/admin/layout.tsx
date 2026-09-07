@@ -20,11 +20,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
-    const user = getStoredUser();
-    if (user && (user.role === 'admin' || user.email.toLowerCase() === 'admin@mail.com')) {
-      setAdminUser(user);
-    }
-    setCheckingAuth(false);
+    const checkAuth = () => {
+      const user = getStoredUser();
+      if (user && (user.role === 'admin' || user.email.toLowerCase() === 'admin@mail.com')) {
+        setAdminUser(user);
+      } else {
+        setAdminUser(null);
+      }
+      setCheckingAuth(false);
+    };
+
+    checkAuth();
+
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('hw_auth_changed', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('hw_auth_changed', checkAuth);
+    };
   }, []);
 
   const handleAdminLogin = async (e: React.FormEvent) => {

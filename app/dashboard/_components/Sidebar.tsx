@@ -18,6 +18,7 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
+import { logoutUser } from '@/app/lib/firebase/services';
 
 const navigation = [
   { name: 'My Healthcare Journey', href: '/dashboard', icon: Home },
@@ -41,8 +42,13 @@ export default function Sidebar({ isMobileOpen = false, onClose }: SidebarProps)
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = () => {
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn('Sign out error:', err);
+    }
+    window.location.href = '/login';
   };
 
   return (

@@ -39,9 +39,12 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await logoutUser();
-    router.push('/admin'); // Redirect to admin login
-    router.refresh(); // Refresh to ensure state is cleared
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn('Admin logout error:', err);
+    }
+    window.location.href = '/admin';
   };
 
   return (

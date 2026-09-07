@@ -114,8 +114,10 @@ export default function ProfileView() {
   const handleLogout = async () => {
     try {
       await logoutUser();
-    } catch {}
-    router.push('/login');
+    } catch (err) {
+      console.warn('Logout error:', err);
+    }
+    window.location.href = '/login';
   };
 
   const initialLetter = formData.fullName ? formData.fullName.charAt(0).toUpperCase() : (formData.email ? formData.email.charAt(0).toUpperCase() : 'U');

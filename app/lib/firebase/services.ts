@@ -578,11 +578,15 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem('hw_user_email');
     localStorage.removeItem('hw_user_role');
     localStorage.removeItem('hw_user_name');
+    localStorage.removeItem('hw_user_id');
+    localStorage.removeItem('hw_active_user');
+    localStorage.removeItem('hw_admin_auth');
     sessionStorage.removeItem('hw_login_draft_email');
     sessionStorage.removeItem('hw_login_draft_password');
     sessionStorage.removeItem('hw_login_not_found_user');
     sessionStorage.removeItem('hw_login_error_msg');
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('hw_auth_changed', { detail: null }));
   }
 }
 

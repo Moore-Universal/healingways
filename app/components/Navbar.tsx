@@ -30,7 +30,11 @@ export default function Navbar() {
     
     // Also listen for storage changes in case of multi-tab login/logout
     window.addEventListener('storage', fetchUser);
-    return () => window.removeEventListener('storage', fetchUser);
+    window.addEventListener('hw_auth_changed', fetchUser);
+    return () => {
+      window.removeEventListener('storage', fetchUser);
+      window.removeEventListener('hw_auth_changed', fetchUser);
+    };
   }, []);
 
   return (
