@@ -19,7 +19,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Lagos, Nigeria',
     tags: ['Cardiology', 'Oncology', 'Orthopedics'],
     accreditation: 'ISO 9001 Certified',
-    imageSrc: '/hospital-1.jpg',
+    imageSrc: '/images/hospital-one.avif',
   },
   {
     id: '2',
@@ -27,7 +27,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Accra, Ghana',
     tags: ['Cardiology', 'Vascular Surgery'],
     accreditation: 'National Health Accreditation',
-    imageSrc: '/hospital-2.jpg',
+    imageSrc: '/images/hospital-three.avif',
   },
   {
     id: '3',
@@ -35,7 +35,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Douala, Cameroon',
     tags: ['General Surgery', 'Maternal Health'],
     accreditation: 'Regional Reference Center',
-    imageSrc: '/hospital-3.jpg',
+    imageSrc: '/images/hospital-eight.avif',
   },
   {
     id: '4',
@@ -43,7 +43,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Kinshasa, DR Congo',
     tags: ['General Medicine', 'Pediatrics'],
     accreditation: 'Ministry of Health Certified',
-    imageSrc: '/hospital-4.jpg',
+    imageSrc: '/images/hospital-two.avif',
   },
   {
     id: '5',
@@ -51,7 +51,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Chennai, India',
     tags: ['Oncology', 'Neurology', 'Organ Transplant'],
     accreditation: 'JCI Accredited',
-    imageSrc: '/hospital-5.jpg',
+    imageSrc: '/images/hospital-four.avif',
   },
   {
     id: '6',
@@ -59,7 +59,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Bangkok, Thailand',
     tags: ['Orthopedics', 'Fertility', 'Eye Care'],
     accreditation: 'JCI Accredited',
-    imageSrc: '/hospital-6.jpg',
+    imageSrc: '/images/hospital-five.avif',
   },
   {
     id: '7',
@@ -67,7 +67,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Dubai, United Arab Emirates',
     tags: ['Cardiology', 'Orthopedics', 'Rehabilitation'],
     accreditation: 'JCI Accredited',
-    imageSrc: '/hospital-7.jpg',
+    imageSrc: '/images/hospital-six.avif',
   },
   {
     id: '8',
@@ -75,7 +75,7 @@ const partnerHospitals: PartnerHospital[] = [
     location: 'Riyadh, Saudi Arabia',
     tags: ['Oncology', 'Cardiology'],
     accreditation: 'CBAHI Accredited',
-    imageSrc: '/hospital-8.jpg',
+    imageSrc: '/images/hospital-three.avif',
   },
 ];
 
