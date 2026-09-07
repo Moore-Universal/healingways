@@ -163,7 +163,7 @@ Day 12: Fit-to-Fly Certification & Airport Departure Transfer.`;
       </div>
 
       {/* Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
 
       {/* Gating Check */}
       {accessReason ? (

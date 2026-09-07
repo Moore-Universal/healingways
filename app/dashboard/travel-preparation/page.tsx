@@ -168,7 +168,7 @@ Ground Transfer: Private climate-controlled medical van from Chennai Airport dir
       </div>
 
       {/* Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
 
       {/* Gating Check */}
       {accessReason ? (

@@ -557,6 +557,15 @@ export async function logoutUser(): Promise<void> {
   setStoredUser(null);
   if (typeof window !== 'undefined') {
     localStorage.removeItem('hw_consultation_case_id');
+    localStorage.removeItem('hw_user_token');
+    localStorage.removeItem('hw_user_email');
+    localStorage.removeItem('hw_user_role');
+    localStorage.removeItem('hw_user_name');
+    sessionStorage.removeItem('hw_login_draft_email');
+    sessionStorage.removeItem('hw_login_draft_password');
+    sessionStorage.removeItem('hw_login_not_found_user');
+    sessionStorage.removeItem('hw_login_error_msg');
+    window.dispatchEvent(new Event('storage'));
   }
 }
 
@@ -775,17 +784,44 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
     console.warn('Error fetching active case from Firestore:', err);
   }
 
-  // Check local active case backup if matching user
+  // Check local active case backup if matching user or stored case ID
   if (typeof window !== 'undefined') {
     try {
+      const activeCaseId = localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_completed_case_id');
+      if (activeCaseId) {
+        const found = await getCaseById(activeCaseId);
+        if (found) {
+          if (effectiveUid && !found.user_id) {
+            found.user_id = effectiveUid;
+            updatePatientCase(found.id, { user_id: effectiveUid }).catch(() => {});
+          }
+          return found;
+        }
+      }
+
       const stored = localStorage.getItem('hw_active_case');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (
-          (effectiveUid && parsed.user_id === effectiveUid) ||
+          !effectiveUid ||
+          parsed.user_id === effectiveUid ||
           (effectiveEmail && parsed.patient_email?.toLowerCase() === effectiveEmail.toLowerCase())
         ) {
           return parsed as PatientCase;
+        }
+      }
+
+      // Check all cached cases
+      const allCasesRaw = localStorage.getItem('hw_all_cases');
+      if (allCasesRaw) {
+        const allCases: PatientCase[] = JSON.parse(allCasesRaw);
+        if (effectiveEmail) {
+          const match = allCases.find((c) => c.patient_email?.toLowerCase() === effectiveEmail.toLowerCase());
+          if (match) return match;
+        }
+        if (effectiveUid) {
+          const match = allCases.find((c) => c.user_id === effectiveUid);
+          if (match) return match;
         }
       }
     } catch {}
@@ -1112,10 +1148,42 @@ export async function ensureInitialCasesSeeded(): Promise<void> {
 // SEQUENTIAL STAGE ACTIONS & CONFIRMATIONS
 // ----------------------------------------------------
 
+export const JOURNEY_STAGES = [
+  'Consultation Submitted',
+  'Case Review',
+  'Hospital Recommendation',
+  'Medical Itinerary',
+  'Accommodation & Visa',
+  'Travel Preparation',
+  'Treatment & Recovery',
+  'Completed',
+] as const;
+
+export type JourneyStageName = (typeof JOURNEY_STAGES)[number];
+
 /**
- * Checks if a specific journey step (1 to 7) is unlocked and accessible
- * Each step is only accessible after the previous step has been dealt with:
- * patient submitted -> admin reviewed & sent back -> patient accepted/declined -> next step unlocked.
+ * Returns the numerical step number (1 to 8) for any stage name string
+ */
+export function getJourneyStepNumber(stageName?: string | null): number {
+  if (!stageName) return 1;
+  const s = stageName.toLowerCase().trim();
+  if (s.includes('completed') || s.includes('post-care') || s.includes('finished')) return 8;
+  if (s.includes('treatment & recovery') || s.includes('recovery') || s.includes('treatment') || s.includes('milestone')) return 7;
+  if (s.includes('travel preparation') || s.includes('travel') || s.includes('flight') || s.includes('logistics')) return 6;
+  if (s.includes('accommodation & visa') || s.includes('accommodation') || s.includes('visa') || s.includes('hotel')) return 5;
+  if (s.includes('medical itinerary') || s.includes('itinerary') || s.includes('treatment plan') || s.includes('schedule')) return 4;
+  if (s.includes('hospital recommendation') || s.includes('recommendation') || s.includes('hospital')) return 3;
+  if (s.includes('case review') || s.includes('review') || s.includes('consultation')) {
+    if (s.includes('submitted') || s.includes('inquiry') || s.includes('intake')) return 1;
+    return 2;
+  }
+  return 1;
+}
+
+/**
+ * Checks if a specific journey step (1 to 7) is unlocked and accessible.
+ * If the patient's case has already reached or passed this step, it is ALWAYS allowed.
+ * Otherwise, verifies if prerequisite conditions are satisfied.
  */
 export function checkStepAccess(stepNumber: number, activeCase: PatientCase | null): {
   allowed: boolean;
@@ -1136,11 +1204,17 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
     };
   }
 
+  // If case's current workflow stage is already at or past this step, it is unlocked
+  const caseCurrentStep = getJourneyStepNumber(activeCase.workflow_stage || activeCase.stage);
+  if (stepNumber <= caseCurrentStep) {
+    return { allowed: true };
+  }
+
   // Step 2: Case Review
   // Requires: Step 1 (Intake) submitted by patient AND admin has reviewed and sent it back
   if (stepNumber === 2) {
     const adminReviewed = !!(activeCase.review_text || activeCase.review_sent_to_patient);
-    if (!adminReviewed) {
+    if (!adminReviewed && caseCurrentStep < 2) {
       return {
         allowed: false,
         reason: 'Your case is currently under evaluation by our Senior Medical Board. Case Review will unlock as soon as the doctor submits and sends the clinical assessment.',
@@ -1153,10 +1227,7 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   // Step 3: Hospital Recommendation
   // Requires: Step 2 dealt with: Patient must have accepted the Case Review
   if (stepNumber === 3) {
-    const step2Access = checkStepAccess(2, activeCase);
-    if (!step2Access.allowed) return step2Access;
-
-    if (!activeCase.review_accepted) {
+    if (!activeCase.review_accepted && caseCurrentStep < 3) {
       return {
         allowed: false,
         reason: 'You must review and accept the doctor’s clinical assessment in Step 2 (Case Review) before hospital recommendations can be unlocked.',
@@ -1169,10 +1240,7 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   // Step 4: Medical Itinerary
   // Requires: Step 3 dealt with: Patient must have accepted / selected a recommended hospital
   if (stepNumber === 4) {
-    const step3Access = checkStepAccess(3, activeCase);
-    if (!step3Access.allowed) return step3Access;
-
-    if (!activeCase.selected_hospital_id || activeCase.hospital_declined) {
+    if ((!activeCase.selected_hospital_id || activeCase.hospital_declined) && caseCurrentStep < 4) {
       return {
         allowed: false,
         reason: 'You must select and confirm your preferred accredited hospital in Step 3 (Hospital Recommendation) before the medical itinerary can be unlocked.',
@@ -1185,10 +1253,7 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   // Step 5: Accommodation & Visa
   // Requires: Step 4 dealt with: Patient must have accepted the Medical Itinerary
   if (stepNumber === 5) {
-    const step4Access = checkStepAccess(4, activeCase);
-    if (!step4Access.allowed) return step4Access;
-
-    if (!activeCase.itinerary_confirmed_by_patient) {
+    if (!activeCase.itinerary_confirmed_by_patient && caseCurrentStep < 5) {
       return {
         allowed: false,
         reason: 'You must review and confirm your clinical care schedule in Step 4 (Medical Itinerary) before accommodation and visa arrangements can be unlocked.',
@@ -1201,10 +1266,7 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   // Step 6: Travel Preparation
   // Requires: Step 5 dealt with: Patient must have accepted the Accommodation & Visa plan
   if (stepNumber === 6) {
-    const step5Access = checkStepAccess(5, activeCase);
-    if (!step5Access.allowed) return step5Access;
-
-    if (!activeCase.accommodation_visa_confirmed_by_patient) {
+    if (!activeCase.accommodation_visa_confirmed_by_patient && caseCurrentStep < 6) {
       return {
         allowed: false,
         reason: 'You must review and confirm your accommodation and visa arrangements in Step 5 before travel preparation can be unlocked.',
@@ -1217,10 +1279,7 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   // Step 7: Treatment & Recovery
   // Requires: Step 6 dealt with: Patient must have confirmed travel logistics
   if (stepNumber === 7) {
-    const step6Access = checkStepAccess(6, activeCase);
-    if (!step6Access.allowed) return step6Access;
-
-    if (!activeCase.confirmed_by_patient) {
+    if (!activeCase.confirmed_by_patient && caseCurrentStep < 7) {
       return {
         allowed: false,
         reason: 'You must confirm your travel preparation and flight logistics in Step 6 before treatment & recovery monitoring can be unlocked.',
@@ -1231,6 +1290,55 @@ export function checkStepAccess(stepNumber: number, activeCase: PatientCase | nu
   }
 
   return { allowed: true };
+}
+
+/**
+ * Admin advances or sets the journey stage directly for a patient case.
+ * Ensures stage-specific prerequisite flags are maintained so both admin and patient can progress smoothly.
+ */
+export async function adminAdvanceCaseStage(caseId: string, newStage: string): Promise<void> {
+  const targetStepNumber = getJourneyStepNumber(newStage);
+  const updates: Partial<PatientCase> = {
+    workflow_stage: newStage as PatientCase['workflow_stage'],
+    stage: newStage,
+  };
+
+  // If advancing forward, ensure prerequisites for that stage are satisfied in case document
+  if (targetStepNumber >= 2) {
+    updates.review_sent_to_patient = true;
+    if (!updates.status || updates.status === 'New') {
+      updates.status = 'Under Review';
+    }
+  }
+  if (targetStepNumber >= 3) {
+    updates.review_accepted = true;
+    updates.review_declined = false;
+    if (updates.status === 'Under Review') {
+      updates.status = 'In Progress';
+    }
+  }
+  if (targetStepNumber >= 4) {
+    updates.hospital_accepted = true;
+    updates.hospital_declined = false;
+  }
+  if (targetStepNumber >= 5) {
+    updates.itinerary_confirmed_by_patient = true;
+    updates.itinerary_declined = false;
+  }
+  if (targetStepNumber >= 6) {
+    updates.accommodation_visa_confirmed_by_patient = true;
+    updates.accommodation_visa_declined = false;
+  }
+  if (targetStepNumber >= 7) {
+    updates.confirmed_by_patient = true;
+    updates.travel_declined = false;
+    updates.status = 'Scheduled';
+  }
+  if (targetStepNumber >= 8) {
+    updates.status = 'Completed';
+  }
+
+  await updatePatientCase(caseId, updates);
 }
 
 /**

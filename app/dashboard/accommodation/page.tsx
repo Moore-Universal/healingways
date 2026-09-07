@@ -165,7 +165,7 @@ Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 h
       </div>
       
       {/* Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
 
       {/* Gating Check */}
       {accessReason ? (

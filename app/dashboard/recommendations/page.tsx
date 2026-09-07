@@ -189,7 +189,7 @@ export default function RecommendationsPage() {
       </div>
 
       {/* Healthcare Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
 
       {/* Gating Check */}
       {accessReason ? (

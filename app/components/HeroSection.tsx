@@ -65,7 +65,7 @@ export default function HeroSection() {
                 alt="Patient guided by healthcare service"
                 width={520}
                 height={620}
-                className="object-contain relative z-10"
+                className="object-contain relative z-10 opacity-90 brightness-95"
                 priority
               />
 

@@ -108,7 +108,7 @@ export default function TreatmentRecoveryPage() {
       </div>
 
       {/* Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
 
       {/* Gating Check */}
       {accessReason ? (

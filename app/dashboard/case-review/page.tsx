@@ -162,7 +162,7 @@ export default function PatientCaseReviewPage() {
       </div>
 
       {/* Stepper Header */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={caseDetails} />
 
       {accessReason ? (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 border border-slate-200 rounded-2xl max-w-2xl mx-auto mt-8">

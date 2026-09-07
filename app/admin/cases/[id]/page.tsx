@@ -28,6 +28,7 @@ import {
   getCaseById, 
   updatePatientCase, 
   adminSubmitCaseReview,
+  adminAdvanceCaseStage,
   sendChatMessage,
   subscribeToCaseMessages,
   ChatMessage,
@@ -257,6 +258,31 @@ export default function AdminCaseDetailPage() {
       try {
         await updatePatientCase(caseRecord.id, { tasks: updated });
       } catch {}
+    }
+  };
+
+  const [updatingStage, setUpdatingStage] = useState(false);
+
+  // Handler: Advance or Set Stage Directly as Admin
+  const handleAdminSetStage = async (newStage: string) => {
+    if (!caseRecord || updatingStage) return;
+    setUpdatingStage(true);
+    try {
+      await adminAdvanceCaseStage(caseRecord.id, newStage);
+      setCaseRecord((prev) =>
+        prev
+          ? {
+              ...prev,
+              workflow_stage: newStage as PatientCase['workflow_stage'],
+              stage: newStage,
+            }
+          : null
+      );
+      showToast(`Journey stage updated to "${newStage}".`);
+    } catch (err: any) {
+      showToast(err.message || 'Error updating stage.');
+    } finally {
+      setUpdatingStage(false);
     }
   };
 
@@ -606,63 +632,121 @@ export default function AdminCaseDetailPage() {
         </h2>
 
         {/* 8-segment progress bar */}
-        <div className="grid grid-cols-8 gap-2 my-3">
-          {JOURNEY_STAGES.map((stageName, idx) => {
-            let barColor = 'bg-slate-200';
-            if (idx < currentStageIndex) {
-              barColor = 'bg-emerald-600';
-            } else if (idx === currentStageIndex) {
-              barColor = 'bg-amber-500';
-            }
-            return (
-              <div
-                key={stageName}
-                title={`Stage ${idx + 1}: ${stageName}`}
-                className={`h-2 rounded-full ${barColor} transition-all duration-300`}
-              />
-            );
-          })}
+        <div className="space-y-1.5 my-3">
+          <div className="grid grid-cols-8 gap-2">
+            {JOURNEY_STAGES.map((stageName, idx) => {
+              let barColor = 'bg-slate-200 hover:bg-slate-300';
+              if (idx < currentStageIndex) {
+                barColor = 'bg-emerald-600 hover:bg-emerald-700';
+              } else if (idx === currentStageIndex) {
+                barColor = 'bg-amber-500 hover:bg-amber-600 ring-2 ring-amber-300';
+              }
+              return (
+                <button
+                  type="button"
+                  key={stageName}
+                  disabled={updatingStage}
+                  onClick={() => handleAdminSetStage(stageName)}
+                  title={`Click to set stage: Stage ${idx + 1} - ${stageName}`}
+                  className={`h-2.5 rounded-full ${barColor} transition-all duration-300 cursor-pointer disabled:opacity-50`}
+                />
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-[10px] font-semibold text-slate-400 px-1">
+            <span>Stage 1: Intake</span>
+            <span>Stage 4: Itinerary</span>
+            <span>Stage 8: Completed</span>
+          </div>
         </div>
 
         {/* Stage Name & Progress Ratio */}
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm pt-1">
           <div>
-            <div className="text-xs text-slate-500">Current Stage</div>
+            <div className="text-xs text-slate-500">Current Workflow Stage</div>
             <div className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
               <span>{currentStageName}</span>
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                Stage {currentStageIndex + 1} of 8
+              </span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-slate-500">Progress</div>
-            <div className="font-bold text-slate-900 text-sm sm:text-base mt-0.5">
-              {currentStageIndex + 1} of 8
+
+          {/* Quick Stage Controls */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="stage-selector" className="text-xs text-slate-500 font-medium">Jump to:</label>
+              <select
+                id="stage-selector"
+                value={currentStageName}
+                disabled={updatingStage}
+                onChange={(e) => handleAdminSetStage(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                {JOURNEY_STAGES.map((s, i) => (
+                  <option key={s} value={s}>
+                    {i + 1}. {s}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {currentStageIndex < JOURNEY_STAGES.length - 1 && (
+              <button
+                type="button"
+                disabled={updatingStage}
+                onClick={() => handleAdminSetStage(JOURNEY_STAGES[currentStageIndex + 1])}
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+              >
+                {updatingStage ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Advance to {JOURNEY_STAGES[currentStageIndex + 1]}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
         {/* Amber Stage Warning Box (Snapshot 4) */}
-        {!canAdvanceStage && (
+        {!canAdvanceStage && currentStageIndex === 0 && (
           <div className="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-4 sm:p-5 space-y-3 mt-4">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-amber-700" />
-              <span className="font-bold text-sm sm:text-base text-slate-900">
-                Can&apos;t advance to Case Review yet
-              </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-700" />
+                <span className="font-bold text-sm sm:text-base text-slate-900">
+                  Consultation intake prerequisites pending
+                </span>
+              </div>
+              <button
+                type="button"
+                disabled={updatingStage}
+                onClick={async () => {
+                  setDocStatus('Accepted');
+                  setTasksList(tasksList.map((t) => ({ ...t, status: 'resolved' })));
+                  await handleAdminSetStage('Case Review');
+                }}
+                className="text-xs font-bold px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors cursor-pointer shadow-2xs"
+              >
+                Resolve &amp; Advance to Case Review
+              </button>
             </div>
 
             {isDocPending && (
               <div className="space-y-1 pl-1">
                 <div className="text-sm font-medium text-slate-800">
-                  1 document still pending review
+                  1 document pending verification
                 </div>
                 <div className="flex items-center justify-between text-sm pt-1">
                   <span className="font-semibold text-slate-900">{docName}</span>
                   <button
-                    onClick={() => setShowDocModal(true)}
-                    className="text-sm font-bold text-blue-600 hover:underline cursor-pointer"
+                    onClick={handleAcceptDoc}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-2 py-1 rounded cursor-pointer"
                   >
-                    Open →
+                    Quick Approve ✓
                   </button>
                 </div>
               </div>
@@ -671,10 +755,16 @@ export default function AdminCaseDetailPage() {
             {openTasks.length > 0 && (
               <div className="space-y-1 pl-1 pt-2 border-t border-amber-200">
                 <div className="text-sm font-medium text-slate-800">
-                  {openTasks.length} open task for this phase must be resolved first
+                  {openTasks.length} open task:
                 </div>
-                <div className="text-sm font-bold text-slate-900 pt-0.5">
-                  {openTasks[0].title}
+                <div className="flex items-center justify-between text-sm pt-0.5">
+                  <span className="font-bold text-slate-900">{openTasks[0].title}</span>
+                  <button
+                    onClick={() => handleToggleTask(openTasks[0].id)}
+                    className="text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded cursor-pointer"
+                  >
+                    Mark Resolved ✓
+                  </button>
                 </div>
               </div>
             )}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -14,8 +14,8 @@ export default function PatientLoginForm() {
   const [identifier, setIdentifier] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     try {
-      const sp = new URLSearchParams(window.location.search);
-      return sp.get('email') || sessionStorage.getItem('hw_login_draft_email') || localStorage.getItem('hw_user_email') || '';
+      const emailParam = searchParams.get('email');
+      return emailParam || sessionStorage.getItem('hw_login_draft_email') || localStorage.getItem('hw_user_email') || '';
     } catch {
       return '';
     }

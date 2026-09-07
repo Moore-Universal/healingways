@@ -11,8 +11,7 @@ import {
   Upload,
   FileText,
   Loader2,
-  AlertCircle,
-  X
+  AlertCircle
 } from 'lucide-react';
 import HealthcareStepper from './HealthcareStepper';
 import { auth } from '@/app/lib/firebase/client';
@@ -21,6 +20,7 @@ import {
   getCurrentUserProfile, 
   getStoredUser,
   saveCaseDocument, 
+  getJourneyStepNumber,
   PatientCase 
 } from '@/app/lib/firebase/services';
 
@@ -44,7 +44,6 @@ export default function JourneyDashboard() {
   const [uploading, setUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
-  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,8 +125,9 @@ export default function JourneyDashboard() {
       ]);
       setUploadSuccess(`Successfully uploaded "${file.name}"`);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err: any) {
-      setUploadError(err.message || 'An error occurred while uploading. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while uploading. Please try again.';
+      setUploadError(msg);
     } finally {
       setUploading(false);
     }
@@ -210,7 +210,206 @@ export default function JourneyDashboard() {
       )}
 
       {/* Reusable Journey Stepper */}
-      <HealthcareStepper />
+      <HealthcareStepper activeCase={activeCase} />
+
+      {/* Active Stage Action & Guidance Banner */}
+      {(() => {
+        const stepNum = activeCase ? getJourneyStepNumber(activeCase.workflow_stage || activeCase.stage) : 1;
+        
+        if (stepNum === 1) {
+          return (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  Stage 1: Consultation Intake Under Review
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Medical Board Evaluating Case File
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Our clinical team is currently analyzing your medical records and intake diagnosis. Case Review will unlock as soon as your clinical assessment is ready.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/messages"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Message Coordinator
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (stepNum === 2) {
+          return (
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                  Action Required: Clinical Case Review Ready
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Doctor Evaluation Complete
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Your Senior Medical assessment has been published. Review and accept the findings to unlock hospital recommendations.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/case-review"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Review Clinical Assessment
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (stepNum === 3) {
+          return (
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50/60 border border-blue-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  Action Required: Hospital Recommendations
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Accredited Hospital Options Available
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Tailored hospital options matching your medical requirements are ready. Select your preferred facility to unlock your medical itinerary.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/recommendations"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Choose Preferred Hospital
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (stepNum === 4) {
+          return (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50/60 border border-purple-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                  <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+                  Action Required: Medical Itinerary
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Care Schedule &amp; Procedure Timeline
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Your personalized clinical schedule has been prepared. Review and confirm the care timeline to unlock accommodation and visa support.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/medical-itinerary"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Review Medical Itinerary
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (stepNum === 5) {
+          return (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                  <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                  Action Required: Accommodation &amp; Visa Support
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Lodging &amp; Medical Visa Arrangements
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Your hotel suite partner details and visa invitation letters are prepared. Confirm your accommodation plan to proceed to travel preparation.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/accommodation"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Confirm Accommodation &amp; Visa
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (stepNum === 6) {
+          return (
+            <div className="bg-gradient-to-r from-teal-50 to-emerald-50/60 border border-teal-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
+                  <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                  Action Required: Travel Preparation
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Flight Logistics &amp; Travel Checklist
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Review your airport transfer schedules, packing requirements, and flight details to activate your Treatment &amp; Recovery monitoring portal.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/dashboard/travel-preparation"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Complete Travel Preparation
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50/60 border border-emerald-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                Active: Treatment &amp; Recovery Monitoring
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                Clinical Care in Progress
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                Your medical journey is active. Access your clinical logs, treatment updates, and recovery rehabilitation milestones.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Link
+                href="/dashboard/treatment-recovery"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+              >
+                Open Treatment Portal
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 2x2 Grid Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

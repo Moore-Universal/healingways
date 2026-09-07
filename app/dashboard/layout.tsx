@@ -2,21 +2,7 @@
 
 import React, { useState } from 'react';
 import Sidebar from './_components/Sidebar';
-import { Menu, Check, FileText, Stethoscope, ClipboardList, HeartPulse } from 'lucide-react';
-
-interface JourneyStage {
-  id: number;
-  label: string;
-  description: string;
-  icon: React.ElementType;
-}
-
-const JOURNEY_STAGES: JourneyStage[] = [
-  { id: 1, label: 'Inquiry', description: 'Request submitted', icon: FileText },
-  { id: 2, label: 'Consultation', description: 'Clinical review', icon: Stethoscope },
-  { id: 3, label: 'Treatment Plan', description: 'Schedule & cost', icon: ClipboardList },
-  { id: 4, label: 'Post-Care', description: 'Recovery follow-up', icon: HeartPulse },
-];
+import { Menu } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -24,8 +10,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  // Centralized current stage state (or pass this via React Context / global state)
-  const [currentStage, setCurrentStage] = useState<number>(2);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
