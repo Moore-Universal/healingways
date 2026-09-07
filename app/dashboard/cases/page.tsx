@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '../Header';
 import { Plus, Loader2, ArrowRight, FolderKanban } from 'lucide-react';
-import { getUserCases, PatientCase, getStoredUser, auth } from '@/app/lib/firebase/services';
+import { getUserCases, PatientCase, getStoredUser } from '@/app/lib/firebase/services';
 
 export default function MyCasesPage() {
   const [cases, setCases] = useState<PatientCase[]>([]);
@@ -17,9 +17,8 @@ export default function MyCasesPage() {
       setLoading(true);
       try {
         const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
+        const uid = stored?.uid || null;
+        const email = stored?.email || null;
         const fetched = await getUserCases(uid, email);
         if (isMounted) {
           setCases(fetched);
@@ -92,7 +91,7 @@ export default function MyCasesPage() {
             >
               <div>
                 <h3 className="text-base font-bold text-blue-900">
-                  {item.need || item.destination || 'Medical Consultation'}
+                  {item.need || item.healthcare_area || 'Medical Consultation'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   {item.case_number || item.id} · {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Active'}

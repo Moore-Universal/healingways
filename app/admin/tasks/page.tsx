@@ -36,11 +36,11 @@ export default function TasksPage() {
               id: t.id || `${c.id}-task-${i}`,
               caseDbId: c.id,
               title: t.title,
-              isAuto: t.auto_generated !== false,
+              isAuto: true,
               patientName: c.patient_name || 'Patient',
               caseId: c.case_number || c.id,
-              dueDate: t.due_date || 'Due Soon',
-              completed: t.status === 'completed',
+              dueDate: t.date || 'Due Soon',
+              completed: t.status === 'resolved',
             });
           });
         } else {
@@ -88,7 +88,7 @@ export default function TasksPage() {
       if (targetCase && targetCase.tasks) {
         const updatedTasks = targetCase.tasks.map((t) =>
           t.id === taskId || t.title === task.title
-            ? { ...t, status: (newCompleted ? 'completed' : 'open') as 'completed' | 'open' }
+            ? { ...t, status: (newCompleted ? 'resolved' : 'open') as 'resolved' | 'open' }
             : t
         );
         await updatePatientCase(task.caseDbId, { tasks: updatedTasks });

@@ -860,233 +860,26 @@ export default function AdminCaseDetailPage() {
         )}
       </div>
 
-      {/* JOURNEY STAGE WORKSTATIONS: Admin Response Components for All Subsequent Stages */}
+      {/* JOURNEY STAGE WORKSTATION: Current Active Stage */}
       <div className="space-y-4">
-        {/* Workstation Header & Tab Switcher */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                JOURNEY STAGE WORKSTATIONS
-              </h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Manage and respond to hospital options, itinerary timelines, accommodation &amp; visas, travel logistics, and clinical updates
-              </p>
-            </div>
-            <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 self-start sm:self-auto">
-              <span>Active View:</span>
-              <span className="text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                {activeWorkstationTab}
-              </span>
-            </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              CURRENT STAGE WORKSTATION
+            </h2>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Sequential workflow view for the active journey stage
+            </p>
           </div>
-
-          {/* Workstation Navigation Tabs */}
-          <div className="flex flex-wrap gap-2 pt-1">
-            {/* Tab 1: Hospital Recommendation */}
-            <button
-              type="button"
-              onClick={() => setActiveWorkstationTab('Hospital Recommendation')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                activeWorkstationTab === 'Hospital Recommendation'
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>1. Hospital Recommendation</span>
-              {caseRecord.hospital_accepted ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  Selected ✓
-                </span>
-              ) : caseRecord.hospital_declined ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  Declined ⚠️
-                </span>
-              ) : caseRecord.hospitals_sent_to_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  Sent ⏳
-                </span>
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  Draft
-                </span>
-              )}
-            </button>
-
-            {/* Tab 2: Medical Itinerary */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!caseRecord.hospital_accepted) {
-                  showToast('Please have the patient accept the hospital recommendation before advancing.');
-                  return;
-                }
-                setActiveWorkstationTab('Medical Itinerary');
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                activeWorkstationTab === 'Medical Itinerary'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>2. Medical Itinerary</span>
-              {caseRecord.itinerary_confirmed_by_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  Confirmed ✓
-                </span>
-              ) : caseRecord.itinerary_declined ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  Revision ⚠️
-                </span>
-              ) : caseRecord.itinerary_sent_to_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  Sent ⏳
-                </span>
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  Draft
-                </span>
-              )}
-            </button>
-
-            {/* Tab 3: Accommodation & Visa */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!caseRecord.itinerary_confirmed_by_patient) {
-                  showToast('Please have the patient confirm the Medical Itinerary first.');
-                  return;
-                }
-                setActiveWorkstationTab('Accommodation & Visa');
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                activeWorkstationTab === 'Accommodation & Visa'
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              <BedDouble className="w-3.5 h-3.5" />
-              <span>3. Accommodation &amp; Visa</span>
-              {caseRecord.accommodation_visa_confirmed_by_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  Confirmed ✓
-                </span>
-              ) : caseRecord.accommodation_visa_declined ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  Changes ⚠️
-                </span>
-              ) : caseRecord.accommodation_visa_sent_to_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  Sent ⏳
-                </span>
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  Draft
-                </span>
-              )}
-            </button>
-
-            {/* Tab 4: Travel Preparation */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!caseRecord.accommodation_visa_confirmed_by_patient) {
-                  showToast('Please have the patient confirm the Accommodation & Visa arrangements first.');
-                  return;
-                }
-                setActiveWorkstationTab('Travel Preparation');
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                activeWorkstationTab === 'Travel Preparation'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              <Plane className="w-3.5 h-3.5" />
-              <span>4. Travel Preparation</span>
-              {caseRecord.confirmed_by_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  Confirmed ✓
-                </span>
-              ) : caseRecord.travel_declined ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  Changes ⚠️
-                </span>
-              ) : caseRecord.travel_sent_to_patient ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  Sent ⏳
-                </span>
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  Draft
-                </span>
-              )}
-            </button>
-
-            {/* Tab 5: Treatment & Recovery */}
-            <button
-              type="button"
-              onClick={() => setActiveWorkstationTab('Treatment & Recovery')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                activeWorkstationTab === 'Treatment & Recovery'
-                  ? 'bg-teal-600 text-white border-teal-600 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>5. Treatment &amp; Recovery</span>
-              {caseRecord.workflow_stage === 'Completed' || caseRecord.stage === 'Completed' ? (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Treatment & Recovery' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  Finished ✓
-                </span>
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  activeWorkstationTab === 'Treatment & Recovery' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-800'
-                }`}>
-                  Active Care 🩺
-                </span>
-              )}
-            </button>
+          <div className="text-xs font-bold text-slate-700 flex items-center gap-2">
+            <span>Active Stage:</span>
+            <span className="text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold">
+              {activeWorkstationTab}
+            </span>
           </div>
         </div>
 
-        {/* Workstation Tab Content Component */}
+        {/* Workstation Content Component */}
         {activeWorkstationTab === 'Hospital Recommendation' && (
           <AdminHospitalRecommendations
             caseRecord={caseRecord}

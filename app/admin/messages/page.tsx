@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import {
   getAdminConversations,
   sendChatMessage,
@@ -288,8 +288,6 @@ export default function MessagesPage() {
             ) : null}
           </>
         )}
-      </div>
-
       </div>
     </div>
   );

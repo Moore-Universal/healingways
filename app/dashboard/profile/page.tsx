@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Bell, Loader2, Check } from 'lucide-react';
 import { 
   getStoredUser, 
-  auth, 
   getUserProfileByUid, 
-  updateUserProfile, 
+  saveUserProfile, 
   logoutUser 
 } from '@/app/lib/firebase/services';
 
@@ -39,11 +38,10 @@ export default function ProfileView() {
       setLoading(true);
       try {
         const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid;
+        const uid = stored?.uid;
 
-        let name = stored?.fullName || user?.displayName || '';
-        let email = stored?.email || user?.email || '';
+        let name = stored?.fullName || '';
+        let email = stored?.email || '';
         let phone = '';
         let country = 'Nigeria';
 
@@ -92,11 +90,13 @@ export default function ProfileView() {
 
     try {
       const stored = getStoredUser();
-      const user = auth.currentUser;
-      const uid = user?.uid || stored?.uid;
+      const uid = stored?.uid;
+      const email = stored?.email || 'user@example.com';
 
       if (uid) {
-        await updateUserProfile(uid, {
+        await saveUserProfile({
+          uid,
+          email,
           fullName: formData.fullName,
           phone: formData.phone,
           country: formData.country,

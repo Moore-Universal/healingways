@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Loader2, Trash2, Edit2 } from 'lucide-react';
 import { Accommodation, getAccommodations, deleteAccommodation, addAccommodation } from '@/app/lib/firebase/services';
-...
+
 export default function AccommodationPage() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-...
+
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -31,7 +31,6 @@ export default function AccommodationPage() {
       console.error('Error adding accommodation:', err);
     }
   };
-...
 
   useEffect(() => {
     async function loadData() {

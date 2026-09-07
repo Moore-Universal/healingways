@@ -70,35 +70,6 @@ export default function AdminHospitalRecommendations({
     }
   };
 
-  const handleAddCustomHospital = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customName.trim() || !customLocation.trim()) {
-      showToast('Please enter hospital name and location.');
-      return;
-    }
-
-    const newHosp: Hospital = {
-      id: `custom-hosp-${Date.now()}`,
-      name: customName.trim(),
-      location: customLocation.trim(),
-      country: customCountry.trim() || 'International',
-      specialties: customSpecialties.split(',').map((s) => s.trim()).filter(Boolean),
-      description: customDesc.trim() || 'Premier specialized medical center partner.',
-      rating: 4.9,
-      accreditation: customAccreditation.trim() || 'JCI Accredited',
-      estimatedCost: customCost.trim() || '$6,000 - $9,000',
-    };
-
-    setAvailableHospitals((prev) => [newHosp, ...prev]);
-    setSelectedHospitalIds((prev) => [newHosp.id, ...prev]);
-    setShowAddCustom(false);
-    setCustomName('');
-    setCustomLocation('');
-    setCustomCountry('');
-    setCustomDesc('');
-    showToast(`Added "${newHosp.name}" to hospital options.`);
-  };
-
   const handleSendRecommendations = async () => {
     setSaving(true);
     try {
@@ -244,82 +215,6 @@ export default function AdminHospitalRecommendations({
             Select Hospitals to Offer to Patient ({selectedHospitalIds.length} Selected)
           </label>
         </div>
-
-        {/* Add custom hospital form */}
-        {showAddCustom && (
-          <form onSubmit={handleAddCustomHospital} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in">
-            <div className="text-xs font-bold uppercase text-slate-700">New Hospital Profile</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Hospital Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Fortis Memorial Research Institute"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">City & Country *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Gurugram, India"
-                  value={customLocation}
-                  onChange={(e) => setCustomLocation(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Estimated Cost</label>
-                <input
-                  type="text"
-                  placeholder="e.g. $6,500 - $8,900"
-                  value={customCost}
-                  onChange={(e) => setCustomCost(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Accreditation</label>
-                <input
-                  type="text"
-                  placeholder="e.g. JCI & NABH Accredited"
-                  value={customAccreditation}
-                  onChange={(e) => setCustomAccreditation(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-white"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-slate-600 block mb-1">Clinical Overview & Specialization</label>
-              <textarea
-                rows={2}
-                placeholder="State-of-the-art robotic suite with dedicated international patient pavilion..."
-                value={customDesc}
-                onChange={(e) => setCustomDesc(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-white resize-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowAddCustom(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs"
-              >
-                Save Hospital
-              </button>
-            </div>
-          </form>
-        )}
 
         {/* Hospital Cards List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

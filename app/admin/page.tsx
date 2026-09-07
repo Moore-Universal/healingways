@@ -27,7 +27,7 @@ interface UrgentItem {
 interface ActivityDisplayItem {
   id: string;
   name: string;
-  badge: 'New' | 'Active' | 'Awaiting Info';
+  badge: string;
   badgeStyle: string;
   department: string;
   stage: string;
