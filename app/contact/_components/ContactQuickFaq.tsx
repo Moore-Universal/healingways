@@ -8,17 +8,20 @@ const quickFaqs = [
   {
     id: '1',
     question: 'What is HealingWays?',
-    answer: 'HealingWays is a global healthcare coordination platform that guides patients through medical consultations, hospital selection, medical travel logistics, and ongoing care coordination.',
+    answer:
+      'HealingWays is a healthcare navigation and coordination platform that helps patients and families make confident healthcare decisions \u2014 connecting them with trusted hospitals and specialists locally and internationally, with guidance at every step.',
   },
   {
     id: '2',
     question: 'What makes HealingWays different from a medical tourism company?',
-    answer: 'Unlike traditional medical tourism brokers, HealingWays focuses on individual clinical case reviews, independent hospital quality criteria, and continuous post-treatment advocacy.',
+    answer:
+      'HealingWays does not sell destinations. Our role is to help you understand your options, connect with suitable healthcare providers, and coordinate the practical support your journey needs \u2014 guidance and coordination, not a travel package.',
   },
   {
     id: '3',
     question: 'Does HealingWays provide medical treatment?',
-    answer: 'No, HealingWays is not a medical facility and does not provide clinical care directly. We connect patients with accredited hospitals and licensed medical specialists.',
+    answer:
+      "No. We don't diagnose, treat, or perform procedures. We work alongside qualified healthcare professionals and institutions to help you access appropriate care.",
   },
 ];
 
