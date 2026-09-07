@@ -9,6 +9,7 @@ import {
   where,
   orderBy,
   limit,
+  onSnapshot,
 } from 'firebase/firestore';
 import {
   signOut,
@@ -1523,4 +1524,321 @@ export async function saveCaseDocument(docData: Omit<CaseDocument, 'id' | 'creat
   }
 
   return fullDoc;
+}
+
+// ----------------------------------------------------
+// REAL-TIME DIRECT MESSAGING (PATIENT & ADMIN)
+// ----------------------------------------------------
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map((provider) => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.warn('Firestore Operation Info: ', JSON.stringify(errInfo));
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg.includes('insufficient permissions') || msg.includes('Missing or insufficient permissions')) {
+    throw new Error(JSON.stringify(errInfo));
+  }
+}
+
+export interface ChatMessage {
+  id: string;
+  caseId: string;
+  sender: 'user' | 'agent';
+  senderName: string;
+  senderRole?: 'patient' | 'coordinator' | 'admin';
+  senderId?: string;
+  text: string;
+  timestamp: string;
+  createdAt: string;
+  read?: boolean;
+}
+
+/**
+ * Sends a message between patient and admin/care coordinator
+ */
+export async function sendChatMessage(params: {
+  caseId: string;
+  altCaseId?: string;
+  sender: 'user' | 'agent';
+  senderName: string;
+  senderRole?: 'patient' | 'coordinator' | 'admin';
+  senderId?: string;
+  text: string;
+}): Promise<ChatMessage> {
+  const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date();
+  const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const message: ChatMessage = {
+    id: msgId,
+    caseId: params.caseId,
+    sender: params.sender,
+    senderName: params.senderName,
+    senderRole: params.senderRole || (params.sender === 'agent' ? 'coordinator' : 'patient'),
+    senderId: params.senderId || (params.sender === 'agent' ? 'coordinator_sarah' : getCurrentUserId() || 'patient_user'),
+    text: params.text.trim(),
+    timestamp: timeFormatted,
+    createdAt: now.toISOString(),
+    read: false,
+  };
+
+  // 1. Optimistic LocalStorage caching for both primary and alternate IDs
+  if (typeof window !== 'undefined') {
+    try {
+      const keys = [params.caseId, params.altCaseId].filter(Boolean) as string[];
+      for (const k of keys) {
+        const storageKey = `hw_chat_msgs_${k}`;
+        const raw = localStorage.getItem(storageKey);
+        const list: ChatMessage[] = raw ? JSON.parse(raw) : [];
+        list.push(message);
+        localStorage.setItem(storageKey, JSON.stringify(list));
+      }
+
+      // Track global latest message by case
+      const summariesRaw = localStorage.getItem('hw_conversations_meta') || '{}';
+      const summaries = JSON.parse(summariesRaw);
+      summaries[params.caseId] = {
+        lastMessage: message.text,
+        lastTimestamp: timeFormatted,
+        lastSender: message.sender,
+        updatedAt: message.createdAt,
+      };
+      if (params.altCaseId) {
+        summaries[params.altCaseId] = summaries[params.caseId];
+      }
+      localStorage.setItem('hw_conversations_meta', JSON.stringify(summaries));
+
+      // Dispatch event for instant reactive updates across components in the same tab
+      window.dispatchEvent(new CustomEvent('hw_new_chat_message', { detail: message }));
+    } catch (e) {
+      console.warn('Notice updating local chat cache:', e);
+    }
+  }
+
+  // 2. Persist to Firestore
+  try {
+    const msgRef = doc(db, 'messages', msgId);
+    await setDoc(msgRef, message);
+  } catch (err) {
+    console.error('Error persisting chat message to Firestore:', err);
+    try {
+      handleFirestoreError(err, OperationType.CREATE, `messages/${msgId}`);
+    } catch {}
+  }
+
+  return message;
+}
+
+/**
+ * Subscribes to real-time messages for a given case ID (and optional alt ID)
+ */
+export function subscribeToCaseMessages(
+  caseId: string,
+  onUpdate: (messages: ChatMessage[]) => void,
+  altCaseId?: string,
+  defaultInitialText?: string
+): () => void {
+  let isUnsubscribed = false;
+
+  const targetKeys = Array.from(new Set([caseId, altCaseId].filter(Boolean) as string[]));
+
+  // Local helper to read cache
+  const getCachedMessages = (): ChatMessage[] => {
+    if (typeof window !== 'undefined') {
+      try {
+        for (const k of targetKeys) {
+          const raw = localStorage.getItem(`hw_chat_msgs_${k}`);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        }
+      } catch {}
+    }
+    return [];
+  };
+
+  const initialWelcome: ChatMessage = {
+    id: `init_${caseId}`,
+    caseId,
+    sender: 'agent',
+    senderName: 'Sarah James',
+    senderRole: 'coordinator',
+    text:
+      defaultInitialText ||
+      "Thanks for reaching out — we've received your consultation request and will begin reviewing your case shortly.",
+    timestamp: 'Just now',
+    createdAt: new Date().toISOString(),
+    read: true,
+  };
+
+  // Initial load from cache or fallback welcome
+  const cached = getCachedMessages();
+  if (cached.length > 0) {
+    onUpdate(cached);
+  } else {
+    onUpdate([initialWelcome]);
+  }
+
+  // Same-window instant sync listener
+  const handleLocalEvent = (e: Event) => {
+    if (isUnsubscribed) return;
+    const detail = (e as CustomEvent<ChatMessage>).detail;
+    if (detail && targetKeys.includes(detail.caseId)) {
+      const current = getCachedMessages();
+      if (current.length > 0) {
+        onUpdate(current);
+      }
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_new_chat_message', handleLocalEvent);
+  }
+
+  // Firestore real-time listener
+  let firestoreUnsubscribe: (() => void) | null = null;
+  try {
+    const messagesRef = collection(db, 'messages');
+    // Query with single caseId or 'in' array if multiple keys
+    const q =
+      targetKeys.length === 1
+        ? query(messagesRef, where('caseId', '==', targetKeys[0]))
+        : query(messagesRef, where('caseId', 'in', targetKeys.slice(0, 10)));
+
+    firestoreUnsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isUnsubscribed) return;
+        if (!snapshot.empty) {
+          const fetched: ChatMessage[] = [];
+          snapshot.forEach((d) => {
+            fetched.push(formatDoc<ChatMessage>(d));
+          });
+
+          // Sort chronologically
+          fetched.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+          // Save to local cache
+          if (typeof window !== 'undefined') {
+            try {
+              for (const k of targetKeys) {
+                localStorage.setItem(`hw_chat_msgs_${k}`, JSON.stringify(fetched));
+              }
+            } catch {}
+          }
+
+          onUpdate(fetched);
+        } else {
+          // If no messages on Firestore yet, keep cached or default welcome
+          const latestCached = getCachedMessages();
+          if (latestCached.length > 0) {
+            onUpdate(latestCached);
+          } else {
+            onUpdate([initialWelcome]);
+          }
+        }
+      },
+      (error) => {
+        console.warn('onSnapshot message sync notice (falling back to cache):', error);
+      }
+    );
+  } catch (err) {
+    console.warn('Could not establish Firestore snapshot listener:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    if (firestoreUnsubscribe) firestoreUnsubscribe();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_new_chat_message', handleLocalEvent);
+    }
+  };
+}
+
+/**
+ * Retrieves all direct message conversations for the admin panel
+ */
+export async function getAdminConversations(): Promise<
+  Array<{
+    id: string;
+    caseRecordId: string;
+    name: string;
+    caseId: string;
+    avatarLetter: string;
+    unread?: boolean;
+    lastMessage: string;
+  }>
+> {
+  // Load real cases from admin service
+  const cases = await getAllCasesForAdmin();
+
+  // Read conversation metadata from localStorage if any
+  let meta: Record<string, { lastMessage: string; lastTimestamp?: string }> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('hw_conversations_meta');
+      if (raw) meta = JSON.parse(raw);
+    } catch {}
+  }
+
+  return cases.map((c, idx) => {
+    const caseMeta = meta[c.id] || meta[c.case_number];
+    const initialName = c.patient_name || 'Patient';
+    const firstLetter = initialName.charAt(0).toUpperCase() || 'P';
+
+    return {
+      id: c.id,
+      caseRecordId: c.id,
+      name: initialName,
+      caseId: c.case_number || `HW-2026-${c.id.substring(0, 6)}`,
+      avatarLetter: firstLetter,
+      unread: idx === 0,
+      lastMessage:
+        caseMeta?.lastMessage ||
+        (c.situation
+          ? c.situation
+          : "Thanks for reaching out — we've received your consultation request and will begin reviewing your case shortly."),
+    };
+  });
 }

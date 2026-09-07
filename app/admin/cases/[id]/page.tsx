@@ -28,6 +28,9 @@ import {
   getCaseById, 
   updatePatientCase, 
   adminSubmitCaseReview,
+  sendChatMessage,
+  subscribeToCaseMessages,
+  ChatMessage,
   DEFAULT_COORDINATORS,
   DEFAULT_HOSPITALS,
   PatientCase,
@@ -360,16 +363,47 @@ export default function AdminCaseDetailPage() {
   };
 
   // Handler: Send chat message
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
-    const msg = {
-      sender: 'Sarah James (Coordinator)',
-      text: chatInput.trim(),
-      time: 'Just now',
-    };
-    setChatMessages((prev) => [...prev, msg]);
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || !caseRecord) return;
+    const textToSend = chatInput.trim();
     setChatInput('');
+
+    try {
+      await sendChatMessage({
+        caseId: caseRecord.id,
+        altCaseId: caseRecord.case_number,
+        sender: 'agent',
+        senderName: `${caseRecord.coordinator_name || 'Sarah James'} (Coordinator)`,
+        senderRole: 'coordinator',
+        text: textToSend,
+      });
+    } catch (err) {
+      console.error('Error sending message from case modal:', err);
+    }
   };
+
+  // Subscribe to real-time messages for this patient case
+  useEffect(() => {
+    if (!caseRecord) return;
+
+    const unsubscribe = subscribeToCaseMessages(
+      caseRecord.id,
+      (msgs) => {
+        setChatMessages(
+          msgs.map((m) => ({
+            sender: m.sender === 'agent' ? m.senderName : caseRecord.patient_name || 'Patient',
+            text: m.text,
+            time: m.timestamp || 'Just now',
+          }))
+        );
+      },
+      caseRecord.case_number
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [caseRecord]);
 
   if (loading) {
     return (

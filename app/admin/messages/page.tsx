@@ -1,125 +1,159 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Send, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  getAdminConversations,
+  sendChatMessage,
+  subscribeToCaseMessages,
+  ChatMessage,
+} from '@/app/lib/firebase/services';
 
-interface Message {
+interface ConversationItem {
   id: string;
-  sender: 'user' | 'agent';
-  text: string;
-  timestamp: string;
-}
-
-interface Conversation {
-  id: string;
+  caseRecordId: string;
   name: string;
   caseId: string;
   avatarLetter: string;
   unread?: boolean;
   lastMessage: string;
-  messages: Message[];
 }
 
-const mockConversations: Conversation[] = [
+const fallbackConversations: ConversationItem[] = [
   {
-    id: '1',
+    id: 'case-amara-chukwu',
+    caseRecordId: 'case-amara-chukwu',
     name: 'Amara Chukwu',
     caseId: 'HW-2026-531971',
     avatarLetter: 'A',
     lastMessage: 'Good question. Let me confirm the detail...',
-    messages: [
-      {
-        id: 'm1',
-        sender: 'agent',
-        text: "Thanks for reaching out — we've received your consultation request and will begin reviewing your case shortly.",
-        timestamp: 'Just now',
-      },
-      {
-        id: 'm2',
-        sender: 'user',
-        text: 'm',
-        timestamp: 'Just now',
-      },
-      {
-        id: 'm3',
-        sender: 'agent',
-        text: 'Good question. Let me confirm the details with our clinical advisor and follow up within the day.',
-        timestamp: 'Just now',
-      },
-    ],
   },
   {
-    id: '2',
-    name: 'Amara Chukwu',
-    caseId: 'HW-2026-531972',
-    avatarLetter: 'A',
-    lastMessage: 'Thanks for reaching out — we\'ve received...',
-    messages: [
-      {
-        id: 'm1',
-        sender: 'agent',
-        text: 'Thanks for reaching out — we\'ve received your request.',
-        timestamp: '2h ago',
-      },
-    ],
+    id: 'case-ss',
+    caseRecordId: 'case-ss',
+    name: 'SS',
+    caseId: 'HW-2026-310079',
+    avatarLetter: 'S',
+    lastMessage: "Thanks for reaching out — we've received your consultation request...",
   },
   {
-    id: '3',
-    name: 'Amara Chukwu',
-    caseId: 'HW-2026-531973',
-    avatarLetter: 'A',
-    unread: true,
-    lastMessage: 'Thank you! Also, will I need to arrange ...',
-    messages: [],
+    id: 'case-fatima-sayed',
+    caseRecordId: 'case-fatima-sayed',
+    name: 'Fatima Al-Sayed',
+    caseId: 'HW-7021',
+    avatarLetter: 'F',
+    lastMessage: 'Seeking advanced proton therapy or robotic oncology consultation.',
   },
   {
-    id: '4',
+    id: 'case-kwame-owusu',
+    caseRecordId: 'case-kwame-owusu',
     name: 'Kwame Owusu',
     caseId: 'HW-2026-531974',
     avatarLetter: 'K',
-    lastMessage: 'It was our pleasure, Kwame. Wishing you ...',
-    messages: [],
+    lastMessage: 'It was our pleasure, Kwame. Wishing you a swift recovery.',
   },
 ];
 
 export default function MessagesPage() {
-  const [selectedId, setSelectedId] = useState<string>('1');
+  const [conversations, setConversations] = useState<ConversationItem[]>(fallbackConversations);
+  const [selectedId, setSelectedId] = useState<string>(fallbackConversations[0].id);
   const [showMobileChat, setShowMobileChat] = useState<boolean>(false);
   const [inputText, setInputText] = useState('');
-  const [conversations, setConversations] = useState(mockConversations);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load real conversations from Firestore / cases
+  useEffect(() => {
+    let isMounted = true;
+    async function loadConversations() {
+      try {
+        const list = await getAdminConversations();
+        if (!isMounted) return;
+        if (list && list.length > 0) {
+          setConversations(list);
+          if (!list.some((c) => c.id === selectedId)) {
+            setSelectedId(list[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading conversations for admin messages:', err);
+      }
+    }
+
+    loadConversations();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedId]);
 
   const activeConversation = conversations.find((c) => c.id === selectedId) || conversations[0];
+
+  // Subscribe to real-time messages for currently active conversation
+  useEffect(() => {
+    if (!activeConversation) return;
+
+    let isMounted = true;
+    const primaryKey = activeConversation.caseRecordId || activeConversation.id;
+    const altKey = activeConversation.caseId;
+
+    const unsubscribe = subscribeToCaseMessages(
+      primaryKey,
+      (msgs) => {
+        if (isMounted) {
+          setMessages(msgs);
+        }
+      },
+      altKey,
+      activeConversation.lastMessage
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [activeConversation]);
+
+  // Scroll to bottom of message stream
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSelectConversation = (id: string) => {
     setSelectedId(id);
     setShowMobileChat(true);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || sending || !activeConversation) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'agent',
-      text: inputText,
-      timestamp: 'Just now',
-    };
-
-    setConversations((prev) =>
-      prev.map((conv) => {
-        if (conv.id === selectedId) {
-          return {
-            ...conv,
-            lastMessage: inputText,
-            messages: [...conv.messages, newMessage],
-          };
-        }
-        return conv;
-      })
-    );
-
+    const textToSend = inputText.trim();
     setInputText('');
+    setSending(true);
+
+    try {
+      const primaryKey = activeConversation.caseRecordId || activeConversation.id;
+      const altKey = activeConversation.caseId;
+
+      await sendChatMessage({
+        caseId: primaryKey,
+        altCaseId: altKey,
+        sender: 'agent',
+        senderName: 'Sarah James (Coordinator)',
+        senderRole: 'coordinator',
+        text: textToSend,
+      });
+
+      // Update last message in conversation sidebar immediately
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === selectedId ? { ...conv, lastMessage: textToSend } : conv))
+      );
+    } catch (err) {
+      console.error('Error sending message as admin:', err);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -145,7 +179,7 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => handleSelectConversation(conv.id)}
-                  className={`w-full text-left p-4 transition-colors relative block ${
+                  className={`w-full text-left p-4 transition-colors relative block cursor-pointer ${
                     isSelected
                       ? 'bg-[#ECFDF5] border-l-4 border-[#10B981]'
                       : 'hover:bg-slate-50 border-l-4 border-transparent'
@@ -183,7 +217,7 @@ export default function MessagesPage() {
             {/* Mobile Back Button */}
             <button
               onClick={() => setShowMobileChat(false)}
-              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
               aria-label="Back to messages"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -204,33 +238,40 @@ export default function MessagesPage() {
 
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-            {activeConversation.messages.map((msg) => {
-              const isAgent = msg.sender === 'agent';
+            {messages.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-sm">
+                No messages yet. Send a message to start conversation with {activeConversation.name}.
+              </div>
+            ) : (
+              messages.map((msg) => {
+                const isAgent = msg.sender === 'agent';
 
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
-                >
+                return (
                   <div
-                    className={`max-w-[85%] sm:max-w-[80%] rounded-xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed ${
-                      isAgent
-                        ? 'bg-[#34A853] text-white rounded-tr-none'
-                        : 'bg-slate-50 border border-slate-200 text-slate-700 rounded-tl-none min-w-[80px]'
-                    }`}
+                    key={msg.id}
+                    className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
                   >
-                    <p className="break-words">{msg.text}</p>
-                    <span
-                      className={`text-[10px] block mt-1 ${
-                        isAgent ? 'text-emerald-800/60' : 'text-slate-400'
+                    <div
+                      className={`max-w-[85%] sm:max-w-[80%] rounded-xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-2xs ${
+                        isAgent
+                          ? 'bg-[#34A853] text-white rounded-tr-none'
+                          : 'bg-slate-50 border border-slate-200 text-slate-700 rounded-tl-none min-w-[80px]'
                       }`}
                     >
-                      {msg.timestamp}
-                    </span>
+                      <p className="break-words">{msg.text}</p>
+                      <span
+                        className={`text-[10px] block mt-1 ${
+                          isAgent ? 'text-emerald-100' : 'text-slate-400'
+                        }`}
+                      >
+                        {msg.timestamp || 'Just now'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Chat Input Bar */}
@@ -245,10 +286,17 @@ export default function MessagesPage() {
               />
               <button
                 type="submit"
-                className="bg-[#34A853] hover:bg-[#2e9649] text-white font-medium text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0"
+                disabled={!inputText.trim() || sending}
+                className="bg-[#34A853] hover:bg-[#2e9649] disabled:opacity-50 text-white font-medium text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
               >
-                <span className="hidden sm:inline">Send</span>
-                <Send className="w-4 h-4 sm:hidden" />
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Send</span>
+                    <Send className="w-4 h-4 sm:hidden" />
+                  </>
+                )}
               </button>
             </form>
           </div>
