@@ -1034,62 +1034,6 @@ export default function AdminCaseDetailPage() {
             </div>
           </div>
 
-          {/* STAGE WORKSTATION JUMP (Sidebar Navigator) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                STAGE WORKSTATION JUMP
-              </h2>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                5 Stages
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 font-medium">
-              Click any stage below to jump straight into its dedicated management workstation:
-            </p>
-            <div className="space-y-1.5 pt-1">
-              {[
-                { name: 'Hospital Recommendation', icon: Building2, label: '3. Hospital Choices', done: caseRecord.hospital_accepted },
-                { name: 'Medical Itinerary', icon: Calendar, label: '4. Clinical Itinerary', done: caseRecord.itinerary_confirmed_by_patient },
-                { name: 'Accommodation & Visa', icon: BedDouble, label: '5. Hotel & Visa Plan', done: caseRecord.accommodation_visa_confirmed_by_patient },
-                { name: 'Travel Preparation', icon: Plane, label: '6. Flight & Logistics', done: caseRecord.confirmed_by_patient },
-                { name: 'Treatment & Recovery', icon: Activity, label: '7. Clinical Updates', done: caseRecord.workflow_stage === 'Completed' },
-              ].map((item) => {
-                const IconComp = item.icon;
-                const isActive = activeWorkstationTab === item.name;
-                return (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => {
-                      setActiveWorkstationTab(item.name);
-                      showToast(`Switched view to ${item.name}.`);
-                    }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-blue-50 border-blue-400 text-blue-900 ring-1 ring-blue-400/60 shadow-2xs'
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.done ? (
-                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
-                        Done ✓
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">
-                        Open <ChevronRight className="w-3 h-3" />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* ACCOMMODATION OPTIONS CARD (Snapshot 3 Middle Right) */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
