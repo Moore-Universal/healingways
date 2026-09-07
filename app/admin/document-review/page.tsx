@@ -90,6 +90,14 @@ export default function DocumentReviewPage() {
           <Loader2 className="w-6 h-6 text-blue-900 animate-spin mr-2" />
           <span className="text-xs sm:text-sm text-slate-500">Loading documents...</span>
         </div>
+      ) : pendingDocs.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-xs sm:text-sm">
+          <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+          <p className="font-semibold text-slate-700">No documents pending review</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Documents submitted by patients through consultations will appear here automatically.
+          </p>
+        </div>
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

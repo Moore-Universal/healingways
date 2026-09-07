@@ -19,44 +19,10 @@ interface ConversationItem {
   lastMessage: string;
 }
 
-const fallbackConversations: ConversationItem[] = [
-  {
-    id: 'case-amara-chukwu',
-    caseRecordId: 'case-amara-chukwu',
-    name: 'Amara Chukwu',
-    caseId: 'HW-2026-531971',
-    avatarLetter: 'A',
-    lastMessage: 'Good question. Let me confirm the detail...',
-  },
-  {
-    id: 'case-ss',
-    caseRecordId: 'case-ss',
-    name: 'SS',
-    caseId: 'HW-2026-310079',
-    avatarLetter: 'S',
-    lastMessage: "Thanks for reaching out — we've received your consultation request...",
-  },
-  {
-    id: 'case-fatima-sayed',
-    caseRecordId: 'case-fatima-sayed',
-    name: 'Fatima Al-Sayed',
-    caseId: 'HW-7021',
-    avatarLetter: 'F',
-    lastMessage: 'Seeking advanced proton therapy or robotic oncology consultation.',
-  },
-  {
-    id: 'case-kwame-owusu',
-    caseRecordId: 'case-kwame-owusu',
-    name: 'Kwame Owusu',
-    caseId: 'HW-2026-531974',
-    avatarLetter: 'K',
-    lastMessage: 'It was our pleasure, Kwame. Wishing you a swift recovery.',
-  },
-];
-
 export default function MessagesPage() {
-  const [conversations, setConversations] = useState<ConversationItem[]>(fallbackConversations);
-  const [selectedId, setSelectedId] = useState<string>(fallbackConversations[0].id);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
   const [showMobileChat, setShowMobileChat] = useState<boolean>(false);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -67,17 +33,19 @@ export default function MessagesPage() {
   useEffect(() => {
     let isMounted = true;
     async function loadConversations() {
+      setLoading(true);
       try {
         const list = await getAdminConversations();
         if (!isMounted) return;
+        setConversations(list || []);
         if (list && list.length > 0) {
-          setConversations(list);
-          if (!list.some((c) => c.id === selectedId)) {
-            setSelectedId(list[0].id);
-          }
+          setSelectedId((prev) => (prev && list.some((c) => c.id === prev) ? prev : list[0].id));
         }
       } catch (err) {
         console.error('Error loading conversations for admin messages:', err);
+        if (isMounted) setConversations([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -85,9 +53,9 @@ export default function MessagesPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedId]);
+  }, []);
 
-  const activeConversation = conversations.find((c) => c.id === selectedId) || conversations[0];
+  const activeConversation = conversations.find((c) => c.id === selectedId) || (conversations.length > 0 ? conversations[0] : null);
 
   // Subscribe to real-time messages for currently active conversation
   useEffect(() => {
@@ -164,143 +132,163 @@ export default function MessagesPage() {
 
       {/* Main Container Card */}
       <div className="flex-1 bg-white border border-slate-200 rounded-xl overflow-hidden flex min-h-0 shadow-sm relative">
-        
-        {/* Left Sidebar - Conversation List */}
-        <div
-          className={`w-full md:w-80 border-r border-slate-200 flex flex-col bg-white shrink-0 ${
-            showMobileChat ? 'hidden md:flex' : 'flex'
-          }`}
-        >
-          <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
-            {conversations.map((conv) => {
-              const isSelected = conv.id === selectedId;
-
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className={`w-full text-left p-4 transition-colors relative block cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#ECFDF5] border-l-4 border-[#10B981]'
-                      : 'hover:bg-slate-50 border-l-4 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm truncate pr-2">
-                      {conv.name}
-                    </span>
-                    {conv.unread && (
-                      <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0 inline-block" />
-                    )}
-                  </div>
-                  <p
-                    className={`text-xs line-clamp-2 leading-relaxed ${
-                      isSelected ? 'text-slate-600' : 'text-slate-500'
-                    }`}
-                  >
-                    {conv.lastMessage}
-                  </p>
-                </button>
-              );
-            })}
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center p-8 text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
           </div>
-        </div>
-
-        {/* Right Pane - Chat Window */}
-        <div
-          className={`flex-1 flex flex-col min-w-0 bg-white ${
-            !showMobileChat ? 'hidden md:flex' : 'flex'
-          }`}
-        >
-          {/* Active Chat Header */}
-          <div className="p-3 sm:p-4 px-4 sm:px-6 border-b border-slate-100 flex items-center gap-3 shrink-0">
-            {/* Mobile Back Button */}
-            <button
-              onClick={() => setShowMobileChat(false)}
-              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
-              aria-label="Back to messages"
+        ) : conversations.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+              <MessageSquare className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">No Patient Messages Yet</h3>
+            <p className="text-xs text-slate-500 max-w-sm mt-1">
+              Direct communication channels are created automatically when patient consultation cases are received in the database.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Left Sidebar - Conversation List */}
+            <div
+              className={`w-full md:w-80 border-r border-slate-200 flex flex-col bg-white shrink-0 ${
+                showMobileChat ? 'hidden md:flex' : 'flex'
+              }`}
             >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+              <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+                {conversations.map((conv) => {
+                  const isSelected = conv.id === selectedId;
 
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
-              {activeConversation.avatarLetter}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-bold text-slate-800 text-xs sm:text-sm leading-tight truncate">
-                {activeConversation.name}
-              </h3>
-              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-medium truncate">
-                {activeConversation.caseId}
-              </p>
-            </div>
-          </div>
-
-          {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-sm">
-                No messages yet. Send a message to start conversation with {activeConversation.name}.
-              </div>
-            ) : (
-              messages.map((msg) => {
-                const isAgent = msg.sender === 'agent';
-
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] sm:max-w-[80%] rounded-xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-2xs ${
-                        isAgent
-                          ? 'bg-[#34A853] text-white rounded-tr-none'
-                          : 'bg-slate-50 border border-slate-200 text-slate-700 rounded-tl-none min-w-[80px]'
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`w-full text-left p-4 transition-colors relative block cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#ECFDF5] border-l-4 border-[#10B981]'
+                          : 'hover:bg-slate-50 border-l-4 border-transparent'
                       }`}
                     >
-                      <p className="break-words">{msg.text}</p>
-                      <span
-                        className={`text-[10px] block mt-1 ${
-                          isAgent ? 'text-emerald-100' : 'text-slate-400'
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-slate-800 text-xs sm:text-sm truncate pr-2">
+                          {conv.name}
+                        </span>
+                        {conv.unread && (
+                          <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0 inline-block" />
+                        )}
+                      </div>
+                      <p
+                        className={`text-xs line-clamp-2 leading-relaxed ${
+                          isSelected ? 'text-slate-600' : 'text-slate-500'
                         }`}
                       >
-                        {msg.timestamp || 'Just now'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+                        {conv.lastMessage}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          {/* Chat Input Bar */}
-          <div className="p-3 sm:p-4 border-t border-slate-100 shrink-0">
-            <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type a reply..."
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-slate-300 placeholder:text-slate-400 min-w-0"
-              />
-              <button
-                type="submit"
-                disabled={!inputText.trim() || sending}
-                className="bg-[#34A853] hover:bg-[#2e9649] disabled:opacity-50 text-white font-medium text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            {/* Right Pane - Chat Window */}
+            {activeConversation ? (
+              <div
+                className={`flex-1 flex flex-col min-w-0 bg-white ${
+                  !showMobileChat ? 'hidden md:flex' : 'flex'
+                }`}
               >
-                {sending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <span className="hidden sm:inline">Send</span>
-                    <Send className="w-4 h-4 sm:hidden" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
+                {/* Active Chat Header */}
+                <div className="p-3 sm:p-4 px-4 sm:px-6 border-b border-slate-100 flex items-center gap-3 shrink-0">
+                  {/* Mobile Back Button */}
+                  <button
+                    onClick={() => setShowMobileChat(false)}
+                    className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
+                    aria-label="Back to messages"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
+                    {activeConversation.avatarLetter}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-800 text-xs sm:text-sm leading-tight truncate">
+                      {activeConversation.name}
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-medium truncate">
+                      {activeConversation.caseId}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Messages Scroll Area */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-sm">
+                      No messages yet. Send a message to start conversation with {activeConversation.name}.
+                    </div>
+                  ) : (
+                    messages.map((msg) => {
+                      const isAgent = msg.sender === 'agent';
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
+                        >
+                          <div
+                            className={`max-w-[85%] sm:max-w-[80%] rounded-xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-2xs ${
+                              isAgent
+                                ? 'bg-[#34A853] text-white rounded-tr-none'
+                                : 'bg-slate-50 border border-slate-200 text-slate-700 rounded-tl-none min-w-[80px]'
+                            }`}
+                          >
+                            <p className="break-words">{msg.text}</p>
+                            <span
+                              className={`text-[10px] block mt-1 ${
+                                isAgent ? 'text-emerald-100' : 'text-slate-400'
+                              }`}
+                            >
+                              {msg.timestamp || 'Just now'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Chat Input Bar */}
+                <div className="p-3 sm:p-4 border-t border-slate-100 shrink-0">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
+                    <input
+                      type="text"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder="Type a reply..."
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-slate-300 placeholder:text-slate-400 min-w-0"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputText.trim() || sending}
+                      className="bg-[#34A853] hover:bg-[#2e9649] disabled:opacity-50 text-white font-medium text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                    >
+                      {sending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline">Send</span>
+                          <Send className="w-4 h-4 sm:hidden" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
 
       </div>
     </div>

@@ -611,14 +611,14 @@ export async function createPatientCase(caseData: Partial<PatientCase> & { user_
     workflow_stage: caseData.workflow_stage || 'Consultation Submitted',
     status: caseData.status || 'New',
     priority: caseData.priority || 'Normal',
-    coordinator_id: caseData.coordinator_id || 'coord-1',
-    coordinator_name: caseData.coordinator_name || 'Sarah James',
+    coordinator_id: caseData.coordinator_id || null,
+    coordinator_name: caseData.coordinator_name || null,
     review_text: caseData.review_text ?? null,
     review_accepted: caseData.review_accepted ?? false,
     review_accepted_at: caseData.review_accepted_at ?? null,
     selected_hospital_id: caseData.selected_hospital_id ?? null,
     selected_hospital: caseData.selected_hospital ?? null,
-    recommended_hospitals: caseData.recommended_hospitals || DEFAULT_HOSPITALS.slice(0, 2),
+    recommended_hospitals: caseData.recommended_hospitals || [],
     itinerary_notes: caseData.itinerary_notes ?? null,
     itinerary_confirmed_by_patient: caseData.itinerary_confirmed_by_patient ?? false,
     accommodation_details: caseData.accommodation_details ?? null,
@@ -732,12 +732,6 @@ export async function getCaseById(caseId: string): Promise<PatientCase | null> {
     console.warn('Error fetching case by ID from Firestore:', err);
   }
 
-  // Fallback to default snapshot cases by id, case_number or patient_name
-  const fallbackCase = DEFAULT_ADMIN_CASES.find(
-    (c) => c.id === caseId || c.case_number === caseId || c.id.toLowerCase() === caseId.toLowerCase() || (caseId.toLowerCase() === 'ss' && c.patient_name === 'SS')
-  );
-  if (fallbackCase) return fallbackCase;
-
   return null;
 }
 
@@ -831,6 +825,68 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
 }
 
 /**
+ * Retrieves all cases for a specific user by UID or email
+ */
+export async function getUserCases(userId?: string | null, userEmail?: string | null): Promise<PatientCase[]> {
+  const effectiveUid = userId || getCurrentUserId();
+  const effectiveEmail = userEmail || getCurrentUserEmail();
+
+  try {
+    const casesRef = collection(db, 'cases');
+    const casesMap = new Map<string, PatientCase>();
+
+    if (effectiveUid) {
+      try {
+        const q = query(casesRef, where('user_id', '==', effectiveUid));
+        const snapshot = await withTimeout(getDocs(q), 3000, null);
+        if (snapshot && !snapshot.empty) {
+          snapshot.docs.forEach((d) => {
+            casesMap.set(d.id, formatDoc<PatientCase>(d));
+          });
+        }
+      } catch (err) {
+        console.warn('Error querying cases by user_id:', err);
+      }
+    }
+
+    if (effectiveEmail) {
+      try {
+        const qEmail = query(casesRef, where('patient_email', '==', effectiveEmail));
+        const snapshot = await withTimeout(getDocs(qEmail), 3000, null);
+        if (snapshot && !snapshot.empty) {
+          snapshot.docs.forEach((d) => {
+            casesMap.set(d.id, formatDoc<PatientCase>(d));
+          });
+        }
+      } catch (err) {
+        console.warn('Error querying cases by patient_email:', err);
+      }
+    }
+
+    if (casesMap.size > 0) {
+      return Array.from(casesMap.values()).sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+    }
+  } catch (err) {
+    console.warn('Error fetching user cases from Firestore:', err);
+  }
+
+  // Check local active case backup
+  if (typeof window !== 'undefined') {
+    try {
+      const activeCaseId = localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_completed_case_id');
+      if (activeCaseId) {
+        const found = await getCaseById(activeCaseId);
+        if (found) return [found];
+      }
+    } catch {}
+  }
+
+  return [];
+}
+
+/**
  * Retrieves all cases for the admin dashboard
  */
 export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
@@ -864,278 +920,8 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
     } catch {}
   }
 
-  return DEFAULT_ADMIN_CASES;
+  return [];
 }
-
-/**
- * Snapshot admin cases matching the dashboard metrics & operational caseload
- */
-export const DEFAULT_ADMIN_CASES: PatientCase[] = [
-  {
-    id: 'case-ss',
-    case_number: 'HW-2026-310079',
-    user_id: 'user-ss',
-    patient_name: 'SS',
-    patient_email: 's@a.com',
-    patient_phone: '',
-    country: 'India',
-    patient_for: '',
-    need: 'Eye Care',
-    healthcare_area: 'Eye Care',
-    looking_for: 'Not sure, I need guidance',
-    situation: 'as',
-    diagnosed: 'Unsure — as',
-    treatment_status: 'Not started treatment',
-    open_to_care_abroad: 'Not sure',
-    preferred_location: 'West Africa',
-    what_matters_most: ['Reputation'],
-    documents_submitted: 1,
-    document_name: 'Consultation page 5.PNG',
-    document_status: 'Pending Review',
-    billing_paid: 0,
-    billing_outstanding: 300,
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    tasks: [
-      {
-        id: 'task-ss-1',
-        title: 'Begin case review for new patient',
-        stage: 'Consultation Submitted',
-        status: 'open',
-      },
-    ],
-    internal_notes: [],
-    accommodations: [],
-    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-fatima-sayed',
-    case_number: 'HW-7021',
-    user_id: 'user-fatima',
-    patient_name: 'Fatima Al-Sayed',
-    patient_email: 'fatima.alsayed@example.com',
-    patient_phone: '+971 50 123 4567',
-    need: 'Oncology',
-    healthcare_area: 'Oncology',
-    situation: 'Seeking advanced proton therapy or robotic oncology consultation.',
-    workflow_stage: 'Case Review',
-    stage: 'Case Review',
-    status: 'In Progress',
-    priority: 'Urgent',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-adaeze-nwosu',
-    case_number: 'HW-7022',
-    user_id: 'user-adaeze',
-    patient_name: 'Adaeze Nwosu',
-    patient_email: 'adaeze.nwosu@example.com',
-    patient_phone: '+234 803 234 5678',
-    need: 'Cardiology',
-    healthcare_area: 'Cardiology',
-    situation: 'Cardiac valve replacement evaluation needed urgently.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Urgent',
-    coordinator_name: null,
-    coordinator_id: null,
-    created_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-chidinma-adeyemi',
-    case_number: 'HW-7023',
-    user_id: 'user-chidinma',
-    patient_name: 'Chidinma Adeyemi',
-    patient_email: 'chidinma.adeyemi@example.com',
-    patient_phone: '+234 802 345 6789',
-    need: 'Fertility',
-    healthcare_area: 'Fertility',
-    situation: 'IVF guidance and overseas clinic comparison.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-amara-chukwu',
-    case_number: 'HW-7024',
-    user_id: 'user-amara',
-    patient_name: 'Amara Chukwu',
-    patient_email: 'amara.chukwu@example.com',
-    patient_phone: '+234 805 456 7890',
-    need: 'Cardiology',
-    healthcare_area: 'Cardiology',
-    situation: 'Pediatric arrhythmia consultation and hospital matching.',
-    workflow_stage: 'Hospital Recommendation',
-    stage: 'Hospital Recommendation',
-    status: 'In Progress',
-    priority: 'High',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-yusuf-mohammed',
-    case_number: 'HW-7025',
-    user_id: 'user-yusuf',
-    patient_name: 'Yusuf Mohammed',
-    patient_email: 'yusuf.mohammed@example.com',
-    patient_phone: '+971 52 345 6789',
-    need: 'Maternal Health',
-    healthcare_area: 'Maternal Health',
-    situation: 'High-risk maternity coordination and scheduled hospital delivery.',
-    workflow_stage: 'Medical Itinerary',
-    stage: 'Medical Itinerary',
-    status: 'In Progress',
-    priority: 'Normal',
-    coordinator_name: 'Daniel Okoro',
-    coordinator_id: 'daniel-okoro',
-    created_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-grace-mensah',
-    case_number: 'HW-7026',
-    user_id: 'user-grace',
-    patient_name: 'Grace Mensah',
-    patient_email: 'grace.mensah@example.com',
-    patient_phone: '+233 24 567 8901',
-    need: 'General Surgery',
-    healthcare_area: 'General Surgery',
-    situation: 'Laparoscopic procedure quotes and pre-op clearance.',
-    workflow_stage: 'Hospital Recommendation',
-    stage: 'Hospital Recommendation',
-    status: 'Under Review',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-tariq-mansoor',
-    case_number: 'HW-7027',
-    user_id: 'user-tariq',
-    patient_name: 'Tariq Mansoor',
-    patient_email: 'tariq.mansoor@example.com',
-    need: 'Neurology',
-    healthcare_area: 'Neurology',
-    situation: 'Spinal decompression and neuro rehabilitation review.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: null,
-    coordinator_id: null,
-    created_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-zainab-bello',
-    case_number: 'HW-7028',
-    user_id: 'user-zainab',
-    patient_name: 'Zainab Bello',
-    patient_email: 'zainab.bello@example.com',
-    need: 'Orthopedics',
-    healthcare_area: 'Orthopedics',
-    situation: 'Joint replacement surgery coordination.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-emeka-okafor',
-    case_number: 'HW-7029',
-    user_id: 'user-emeka',
-    patient_name: 'Emeka Okafor',
-    patient_email: 'emeka.okafor@example.com',
-    need: 'Urology',
-    healthcare_area: 'Urology',
-    situation: 'Minimally invasive urology surgery referral.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-folake-balogun',
-    case_number: 'HW-7030',
-    user_id: 'user-folake',
-    patient_name: 'Folake Balogun',
-    patient_email: 'folake.balogun@example.com',
-    need: 'Ophthalmology',
-    healthcare_area: 'Ophthalmology',
-    situation: 'Retinal surgery and specialist booking abroad.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-kwame-boateng',
-    case_number: 'HW-7031',
-    user_id: 'user-kwame',
-    patient_name: 'Kwame Boateng',
-    patient_email: 'kwame.boateng@example.com',
-    need: 'Gastroenterology',
-    healthcare_area: 'Gastroenterology',
-    situation: 'Specialized GI diagnostic workup and scoping.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Daniel Okoro',
-    coordinator_id: 'daniel-okoro',
-    created_at: new Date(Date.now() - 9 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 9 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-amina-diallo',
-    case_number: 'HW-7032',
-    user_id: 'user-amina',
-    patient_name: 'Amina Diallo',
-    patient_email: 'amina.diallo@example.com',
-    need: 'Dermatology',
-    healthcare_area: 'Dermatology',
-    situation: 'Complex autoimmune skin condition second opinion.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'In Progress',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-  },
-];
 
 /**
  * Initial cases seeder

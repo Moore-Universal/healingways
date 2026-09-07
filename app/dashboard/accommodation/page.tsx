@@ -153,7 +153,7 @@ Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 h
             Accommodation &amp; Visa Logistics
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Case {activeCase?.case_number || 'HW-2026-531971'} · Tailored for patient comfort and seamless travel
+            {activeCase ? `Case ${activeCase.case_number || activeCase.id}` : 'Active Case'} · Tailored for patient comfort and seamless travel
           </p>
         </div>
         <Link 

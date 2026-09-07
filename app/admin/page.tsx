@@ -40,274 +40,6 @@ interface TeamMemberWorkload {
   isUnassigned?: boolean;
 }
 
-// Initial snapshot seed cases ensuring exact figures and operational depth
-const INITIAL_SNAPSHOT_CASES: Partial<PatientCase>[] = [
-  {
-    id: 'case-ss',
-    case_number: 'HW-2026-310079',
-    user_id: 'user-ss',
-    patient_name: 'SS',
-    patient_email: 's@a.com',
-    patient_phone: '',
-    country: 'India',
-    patient_for: '',
-    need: 'Eye Care',
-    healthcare_area: 'Eye Care',
-    looking_for: 'Not sure, I need guidance',
-    situation: 'as',
-    diagnosed: 'Unsure — as',
-    treatment_status: 'Not started treatment',
-    open_to_care_abroad: 'Not sure',
-    preferred_location: 'West Africa',
-    what_matters_most: ['Reputation'],
-    documents_submitted: 1,
-    document_name: 'Consultation page 5.PNG',
-    document_status: 'Pending Review',
-    billing_paid: 0,
-    billing_outstanding: 300,
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    tasks: [
-      {
-        id: 'task-ss-1',
-        title: 'Begin case review for new patient',
-        stage: 'Consultation Submitted',
-        status: 'open',
-      },
-    ],
-    internal_notes: [],
-    accommodations: [],
-    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-fatima-sayed',
-    case_number: 'HW-7021',
-    user_id: 'user-fatima',
-    patient_name: 'Fatima Al-Sayed',
-    patient_email: 'fatima.alsayed@example.com',
-    patient_phone: '+971 50 123 4567',
-    need: 'Oncology',
-    healthcare_area: 'Oncology',
-    situation: 'Seeking advanced proton therapy or robotic oncology consultation.',
-    workflow_stage: 'Case Review',
-    stage: 'Case Review',
-    status: 'In Progress',
-    priority: 'Urgent',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-adaeze-nwosu',
-    case_number: 'HW-7022',
-    user_id: 'user-adaeze',
-    patient_name: 'Adaeze Nwosu',
-    patient_email: 'adaeze.nwosu@example.com',
-    patient_phone: '+234 803 234 5678',
-    need: 'Cardiology',
-    healthcare_area: 'Cardiology',
-    situation: 'Cardiac valve replacement evaluation needed urgently.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Urgent',
-    coordinator_name: null,
-    coordinator_id: null,
-    created_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-chidinma-adeyemi',
-    case_number: 'HW-7023',
-    user_id: 'user-chidinma',
-    patient_name: 'Chidinma Adeyemi',
-    patient_email: 'chidinma.adeyemi@example.com',
-    patient_phone: '+234 802 345 6789',
-    need: 'Fertility',
-    healthcare_area: 'Fertility',
-    situation: 'IVF guidance and overseas clinic comparison.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'case-amara-chukwu',
-    case_number: 'HW-7024',
-    user_id: 'user-amara',
-    patient_name: 'Amara Chukwu',
-    patient_email: 'amara.chukwu@example.com',
-    patient_phone: '+234 805 456 7890',
-    need: 'Cardiology',
-    healthcare_area: 'Cardiology',
-    situation: 'Pediatric arrhythmia consultation and hospital matching.',
-    workflow_stage: 'Hospital Recommendation',
-    stage: 'Hospital Recommendation',
-    status: 'In Progress',
-    priority: 'High',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-yusuf-mohammed',
-    case_number: 'HW-7025',
-    user_id: 'user-yusuf',
-    patient_name: 'Yusuf Mohammed',
-    patient_email: 'yusuf.mohammed@example.com',
-    patient_phone: '+971 52 345 6789',
-    need: 'Maternal Health',
-    healthcare_area: 'Maternal Health',
-    situation: 'High-risk maternity coordination and scheduled hospital delivery.',
-    workflow_stage: 'Medical Itinerary',
-    stage: 'Medical Itinerary',
-    status: 'In Progress',
-    priority: 'Normal',
-    coordinator_name: 'Daniel Okoro',
-    coordinator_id: 'daniel-okoro',
-    created_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-grace-mensah',
-    case_number: 'HW-7026',
-    user_id: 'user-grace',
-    patient_name: 'Grace Mensah',
-    patient_email: 'grace.mensah@example.com',
-    patient_phone: '+233 24 567 8901',
-    need: 'General Surgery',
-    healthcare_area: 'General Surgery',
-    situation: 'Laparoscopic procedure quotes and pre-op clearance.',
-    workflow_stage: 'Hospital Recommendation',
-    stage: 'Hospital Recommendation',
-    status: 'Under Review',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-tariq-mansoor',
-    case_number: 'HW-7027',
-    user_id: 'user-tariq',
-    patient_name: 'Tariq Mansoor',
-    patient_email: 'tariq.mansoor@example.com',
-    need: 'Neurology',
-    healthcare_area: 'Neurology',
-    situation: 'Spinal decompression and neuro rehabilitation review.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: null,
-    coordinator_id: null,
-    created_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-zainab-bello',
-    case_number: 'HW-7028',
-    user_id: 'user-zainab',
-    patient_name: 'Zainab Bello',
-    patient_email: 'zainab.bello@example.com',
-    need: 'Orthopedics',
-    healthcare_area: 'Orthopedics',
-    situation: 'Joint replacement surgery coordination.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-emeka-okafor',
-    case_number: 'HW-7029',
-    user_id: 'user-emeka',
-    patient_name: 'Emeka Okafor',
-    patient_email: 'emeka.okafor@example.com',
-    need: 'Urology',
-    healthcare_area: 'Urology',
-    situation: 'Minimally invasive urology surgery referral.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-folake-balogun',
-    case_number: 'HW-7030',
-    user_id: 'user-folake',
-    patient_name: 'Folake Balogun',
-    patient_email: 'folake.balogun@example.com',
-    need: 'Ophthalmology',
-    healthcare_area: 'Ophthalmology',
-    situation: 'Retinal surgery and specialist booking abroad.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-kwame-boateng',
-    case_number: 'HW-7031',
-    user_id: 'user-kwame',
-    patient_name: 'Kwame Boateng',
-    patient_email: 'kwame.boateng@example.com',
-    need: 'Gastroenterology',
-    healthcare_area: 'Gastroenterology',
-    situation: 'Specialized GI diagnostic workup and scoping.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'New',
-    priority: 'Normal',
-    coordinator_name: 'Daniel Okoro',
-    coordinator_id: 'daniel-okoro',
-    created_at: new Date(Date.now() - 9 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 9 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'case-amina-diallo',
-    case_number: 'HW-7032',
-    user_id: 'user-amina',
-    patient_name: 'Amina Diallo',
-    patient_email: 'amina.diallo@example.com',
-    need: 'Dermatology',
-    healthcare_area: 'Dermatology',
-    situation: 'Complex autoimmune skin condition second opinion.',
-    workflow_stage: 'Consultation Submitted',
-    stage: 'Consultation Submitted',
-    status: 'In Progress',
-    priority: 'Normal',
-    coordinator_name: 'Sarah James',
-    coordinator_id: 'sarah-james',
-    created_at: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-  },
-];
-
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [allCases, setAllCases] = useState<PatientCase[]>([]);
@@ -318,44 +50,15 @@ export default function AdminDashboardPage() {
   const [savingAssignments, setSavingAssignments] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Initialize and seed cases if necessary
+  // Initialize cases directly from database
   const loadDashboardCases = useCallback(async () => {
     setLoading(true);
     try {
-      let fetched = await getAllCasesForAdmin();
-
-      // If no cases or fewer cases than snapshot, combine with snapshot initial cases
-      if (!fetched || fetched.length < 5) {
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('hw_all_cases');
-          if (stored) {
-            try {
-              fetched = JSON.parse(stored);
-            } catch {}
-          }
-        }
-
-        if (!fetched || fetched.length < 5) {
-          const merged = [
-            ...(fetched || []),
-            ...(INITIAL_SNAPSHOT_CASES as PatientCase[]).filter(
-              (sc) => !(fetched || []).some((fc) => fc.id === sc.id || fc.patient_name === sc.patient_name)
-            ),
-          ];
-          fetched = merged;
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem('hw_all_cases', JSON.stringify(merged));
-            } catch {}
-          }
-        }
-      }
-
-      setAllCases(fetched);
+      const fetched = await getAllCasesForAdmin();
+      setAllCases(fetched || []);
     } catch (err) {
-      console.error('Error fetching admin dashboard data:', err);
-      // Fallback
-      setAllCases(INITIAL_SNAPSHOT_CASES as PatientCase[]);
+      console.error('Error fetching admin dashboard data from database:', err);
+      setAllCases([]);
     } finally {
       setLoading(false);
     }
@@ -365,130 +68,94 @@ export default function AdminDashboardPage() {
     loadDashboardCases();
   }, [loadDashboardCases]);
 
-  // Compute metrics dynamically from cases
+  // Compute metrics dynamically from database cases
   const newConsultationsCount = allCases.filter(
     (c) => c.status === 'New' || c.workflow_stage === 'Consultation Submitted'
-  ).length || 7;
+  ).length;
 
   const activeCasesCount = allCases.filter(
     (c) => c.status === 'In Progress' || c.status === 'Under Review' || c.status === 'Scheduled'
-  ).length || 4;
+  ).length;
 
   const awaitingInfoCount = allCases.filter(
-    (c) => c.patient_name === 'Grace Mensah' || c.status === 'Under Review'
-  ).length > 0 ? 1 : 1;
+    (c) => c.status === 'Under Review' || c.document_status === 'Pending Review'
+  ).length;
 
-  const documentsPendingReviewCount = 6;
-  const openTasksCount = 10;
+  const documentsPendingReviewCount = allCases.reduce(
+    (sum, c) => sum + (c.documents?.length || (c.documents_submitted ? 1 : 0)),
+    0
+  );
 
-  // Urgent cases
-  const urgentCases: UrgentItem[] = [
-    {
-      id: allCases.find((c) => c.patient_name.includes('Fatima'))?.id || 'case-fatima-sayed',
-      name: 'Fatima Al-Sayed',
-      specialty: 'Oncology',
-      coordinator: 'Sarah James',
-      isUnassigned: false,
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Adaeze'))?.id || 'case-adaeze-nwosu',
-      name: 'Adaeze Nwosu',
-      specialty: 'Cardiology',
-      coordinator: allCases.find((c) => c.patient_name.includes('Adaeze'))?.coordinator_name || 'Unassigned',
-      isUnassigned: !allCases.find((c) => c.patient_name.includes('Adaeze'))?.coordinator_name,
-    },
-  ];
+  const openTasksCount = allCases.reduce(
+    (sum, c) => sum + (c.tasks?.filter((t) => t.status === 'open').length || 0),
+    0
+  );
 
-  // Recent activity matching snapshot
-  const recentActivities: ActivityDisplayItem[] = [
-    {
-      id: allCases.find((c) => c.patient_name === 'SS' || c.case_number === 'HW-2026-310079')?.id || 'case-ss',
-      name: 'SS',
-      badge: 'New',
-      badgeStyle: 'bg-slate-100 text-slate-700',
-      department: 'Eye Care',
-      stage: 'Consultation Submitted',
-      timeAgo: '15 minutes ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Chidinma'))?.id || 'case-chidinma-adeyemi',
-      name: 'Chidinma Adeyemi',
-      badge: 'New',
-      badgeStyle: 'bg-slate-100 text-slate-700',
-      department: 'Fertility',
-      stage: 'Consultation Submitted',
-      timeAgo: '1 hour ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Amara'))?.id || 'case-amara-chukwu',
-      name: 'Amara Chukwu',
-      badge: 'Active',
-      badgeStyle: 'bg-[#e6f7ef] text-[#0d824d]',
-      department: 'Cardiology',
-      stage: 'Hospital Recommendation',
-      timeAgo: '2 hours ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Adaeze'))?.id || 'case-adaeze-nwosu',
-      name: 'Adaeze Nwosu',
-      badge: 'New',
-      badgeStyle: 'bg-slate-100 text-slate-700',
-      department: 'Cardiology',
-      stage: 'Consultation Submitted',
-      timeAgo: '20 minutes ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Yusuf'))?.id || 'case-yusuf-mohammed',
-      name: 'Yusuf Mohammed',
-      badge: 'Active',
-      badgeStyle: 'bg-[#e6f7ef] text-[#0d824d]',
-      department: 'Maternal Health',
-      stage: 'Medical Itinerary',
-      timeAgo: '3 days ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Fatima'))?.id || 'case-fatima-sayed',
-      name: 'Fatima Al-Sayed',
-      badge: 'Active',
-      badgeStyle: 'bg-[#e6f7ef] text-[#0d824d]',
-      department: 'Oncology',
-      stage: 'Case Review',
-      timeAgo: '3 hours ago',
-    },
-    {
-      id: allCases.find((c) => c.patient_name.includes('Grace'))?.id || 'case-grace-mensah',
-      name: 'Grace Mensah',
-      badge: 'Awaiting Info',
-      badgeStyle: 'bg-[#fef3c7] text-[#b45309]',
-      department: 'General Surgery',
-      stage: 'Hospital Recommendation',
-      timeAgo: '4 days ago',
-    },
-  ];
+  // Urgent cases derived strictly from database records
+  const urgentCases: UrgentItem[] = allCases
+    .filter((c) => c.priority === 'Urgent' || c.priority === 'High' || !c.coordinator_name)
+    .slice(0, 5)
+    .map((c) => ({
+      id: c.id,
+      name: c.patient_name || 'Patient',
+      specialty: c.need || c.healthcare_area || 'General',
+      coordinator: c.coordinator_name || 'Unassigned',
+      isUnassigned: !c.coordinator_name,
+    }));
 
-  // Team Workload calculation
+  // Helper for human-readable relative time
+  const formatTimeAgo = (iso?: string) => {
+    if (!iso) return 'Recently';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
+  // Recent activity derived strictly from database cases
+  const recentActivities: ActivityDisplayItem[] = allCases.slice(0, 7).map((c) => ({
+    id: c.id,
+    name: c.patient_name || 'Patient',
+    badge: c.status || 'New',
+    badgeStyle:
+      c.status === 'New'
+        ? 'bg-slate-100 text-slate-700'
+        : c.status === 'Under Review'
+        ? 'bg-[#fef3c7] text-[#b45309]'
+        : 'bg-[#e6f7ef] text-[#0d824d]',
+    department: c.need || c.healthcare_area || 'General Medicine',
+    stage: c.workflow_stage || c.stage || 'Consultation Submitted',
+    timeAgo: formatTimeAgo(c.updated_at || c.created_at),
+  }));
+
+  // Team Workload calculation from real database cases
   const unassignedCasesList = allCases.filter((c) => !c.coordinator_name);
-  const unassignedCount = unassignedCasesList.length > 0 ? unassignedCasesList.length : 2;
-  const sarahCasesCount = allCases.filter((c) => c.coordinator_name === 'Sarah James').length || 8;
-  const danielCasesCount = allCases.filter((c) => c.coordinator_name === 'Daniel Okoro').length || 2;
+  const unassignedCount = unassignedCasesList.length;
+
+  const coordinatorCounts: Record<string, number> = {};
+  allCases.forEach((c) => {
+    if (c.coordinator_name) {
+      coordinatorCounts[c.coordinator_name] = (coordinatorCounts[c.coordinator_name] || 0) + 1;
+    }
+  });
 
   const teamWorkload: TeamMemberWorkload[] = [
-    { name: 'Sarah James', count: sarahCasesCount },
+    { name: 'Sarah James', count: coordinatorCounts['Sarah James'] || 0 },
     { name: 'Unassigned', count: unassignedCount, isUnassigned: true },
-    { name: 'Daniel Okoro', count: danielCasesCount },
+    { name: 'Daniel Okoro', count: coordinatorCounts['Daniel Okoro'] || 0 },
   ];
 
   // Open assign modal and prep drafts
   const handleOpenAssign = () => {
+    if (unassignedCasesList.length === 0) return;
     const drafts: Record<string, string> = {};
     unassignedCasesList.forEach((c) => {
       drafts[c.id] = 'Sarah James';
     });
-    // Fallback if empty
-    if (Object.keys(drafts).length === 0) {
-      drafts['case-adaeze-nwosu'] = 'Daniel Okoro';
-      drafts['case-tariq-mansoor'] = 'Sarah James';
-    }
     setAssignmentDraft(drafts);
     setShowAssignModal(true);
   };
@@ -611,33 +278,39 @@ export default function AdminDashboardPage() {
         <div className="flex items-center gap-2 text-rose-600">
           <Shield className="w-5 h-5 stroke-[2] text-rose-500" />
           <h3 className="text-sm font-bold text-rose-600">
-            {urgentCases.length} urgent cases need attention
+            {urgentCases.length === 0 ? 'No urgent cases flagged' : `${urgentCases.length} urgent cases need attention`}
           </h3>
         </div>
 
-        <div className="space-y-2.5 pt-0.5">
-          {urgentCases.map((c) => (
-            <div key={c.id} className="flex items-center justify-between gap-4 text-xs sm:text-sm">
-              <div className="text-slate-700 truncate pr-2">
-                <span className="font-medium text-slate-800">{c.name}</span>
-                {' '}&mdash;{' '}
-                <span>{c.specialty}</span>
-                {' '}&middot;{' '}
-                {c.isUnassigned ? (
-                  <span className="text-rose-600 font-semibold">Unassigned</span>
-                ) : (
-                  <span className="text-slate-600">{c.coordinator}</span>
-                )}
+        {urgentCases.length === 0 ? (
+          <p className="text-xs text-rose-700/80 font-medium">
+            All active patient cases in the database are currently triaged and on track.
+          </p>
+        ) : (
+          <div className="space-y-2.5 pt-0.5">
+            {urgentCases.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-4 text-xs sm:text-sm">
+                <div className="text-slate-700 truncate pr-2">
+                  <span className="font-medium text-slate-800">{c.name}</span>
+                  {' '}&mdash;{' '}
+                  <span>{c.specialty}</span>
+                  {' '}&middot;{' '}
+                  {c.isUnassigned ? (
+                    <span className="text-rose-600 font-semibold">Unassigned</span>
+                  ) : (
+                    <span className="text-slate-600">{c.coordinator}</span>
+                  )}
+                </div>
+                <Link
+                  href={`/admin/cases/${c.id}`}
+                  className="text-blue-600 hover:text-blue-800 font-semibold text-xs sm:text-sm hover:underline shrink-0 cursor-pointer"
+                >
+                  Open &rarr;
+                </Link>
               </div>
-              <Link
-                href={`/admin/cases/${c.id}`}
-                className="text-blue-600 hover:text-blue-800 font-semibold text-xs sm:text-sm hover:underline shrink-0 cursor-pointer"
-              >
-                Open &rarr;
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Two Column Grid: Recent Activity & Team Workload */}
@@ -649,29 +322,38 @@ export default function AdminDashboardPage() {
           </h2>
 
           <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs divide-y divide-slate-100 overflow-hidden">
-            {recentActivities.map((act) => (
-              <Link
-                key={act.id}
-                href={`/admin/cases/${act.id}`}
-                className="p-4 sm:px-6 sm:py-4 hover:bg-slate-50/70 transition-colors flex flex-col gap-1.5 block group cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors">
-                    {act.name}
-                  </span>
-                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${act.badgeStyle}`}>
-                    {act.badge}
-                  </span>
-                </div>
+            {recentActivities.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <p className="text-sm font-semibold text-slate-700">No active cases in database</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  When new patient consultations are submitted, they will appear here in real time.
+                </p>
+              </div>
+            ) : (
+              recentActivities.map((act) => (
+                <Link
+                  key={act.id}
+                  href={`/admin/cases/${act.id}`}
+                  className="p-4 sm:px-6 sm:py-4 hover:bg-slate-50/70 transition-colors flex flex-col gap-1.5 block group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors">
+                      {act.name}
+                    </span>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${act.badgeStyle}`}>
+                      {act.badge}
+                    </span>
+                  </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                    {act.department} &middot; {act.stage}
-                  </span>
-                  <span className="shrink-0">{act.timeAgo}</span>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>
+                      {act.department} &middot; {act.stage}
+                    </span>
+                    <span className="shrink-0">{act.timeAgo}</span>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
@@ -702,10 +384,11 @@ export default function AdminDashboardPage() {
             <div className="pt-2">
               <button
                 type="button"
+                disabled={unassignedCount === 0}
                 onClick={handleOpenAssign}
-                className="w-full py-2.5 px-4 rounded-xl border-2 border-emerald-600 text-emerald-700 font-semibold text-xs sm:text-sm hover:bg-emerald-50 transition-colors text-center cursor-pointer shadow-2xs active:scale-[0.99]"
+                className="w-full py-2.5 px-4 rounded-xl border-2 border-emerald-600 text-emerald-700 font-semibold text-xs sm:text-sm hover:bg-emerald-50 transition-colors text-center cursor-pointer shadow-2xs active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Assign {unassignedCount} unassigned cases
+                Assign {unassignedCount} unassigned {unassignedCount === 1 ? 'case' : 'cases'}
               </button>
             </div>
           </div>
@@ -731,42 +414,31 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1">
-              {urgentCases
-                .filter((c) => c.isUnassigned)
-                .concat([
-                  {
-                    id: 'case-tariq-mansoor',
-                    name: 'Tariq Mansoor',
-                    specialty: 'Neurology',
-                    coordinator: 'Unassigned',
-                    isUnassigned: true,
-                  },
-                ])
-                .map((c) => (
-                  <div key={c.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-800">{c.name}</span>
-                      <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-                        {c.specialty}
-                      </span>
-                    </div>
-                    <div className="pt-1">
-                      <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                        Select Coordinator:
-                      </label>
-                      <select
-                        value={assignmentDraft[c.id] || 'Daniel Okoro'}
-                        onChange={(e) =>
-                          setAssignmentDraft({ ...assignmentDraft, [c.id]: e.target.value })
-                        }
-                        className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
-                      >
-                        <option value="Sarah James">Sarah James (Care Coordinator)</option>
-                        <option value="Daniel Okoro">Daniel Okoro (Care Coordinator)</option>
-                      </select>
-                    </div>
+              {unassignedCasesList.map((c) => (
+                <div key={c.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-800">{c.patient_name}</span>
+                    <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                      {c.need || 'General'}
+                    </span>
                   </div>
-                ))}
+                  <div className="pt-1">
+                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                      Select Coordinator:
+                    </label>
+                    <select
+                      value={assignmentDraft[c.id] || 'Sarah James'}
+                      onChange={(e) =>
+                        setAssignmentDraft({ ...assignmentDraft, [c.id]: e.target.value })
+                      }
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+                    >
+                      <option value="Sarah James">Sarah James (Care Coordinator)</option>
+                      <option value="Daniel Okoro">Daniel Okoro (Care Coordinator)</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t">

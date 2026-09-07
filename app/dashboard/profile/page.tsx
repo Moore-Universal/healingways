@@ -1,17 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell } from 'lucide-react';
+import { Bell, Loader2, Check } from 'lucide-react';
+import { 
+  getStoredUser, 
+  auth, 
+  getUserProfileByUid, 
+  updateUserProfile, 
+  logoutUser 
+} from '@/app/lib/firebase/services';
 
 export default function ProfileView() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Personal Information State
   const [formData, setFormData] = useState({
-    fullName: 'Amara Chukwu',
-    email: 'amara.chukwu@example.com',
+    fullName: '',
+    email: '',
     phone: '',
     country: 'Nigeria',
     preferredContact: 'Email',
@@ -24,6 +34,46 @@ export default function ProfileView() {
     whatsapp: false,
   });
 
+  useEffect(() => {
+    async function loadProfile() {
+      setLoading(true);
+      try {
+        const stored = getStoredUser();
+        const user = auth.currentUser;
+        const uid = user?.uid || stored?.uid;
+
+        let name = stored?.fullName || user?.displayName || '';
+        let email = stored?.email || user?.email || '';
+        let phone = '';
+        let country = 'Nigeria';
+
+        if (uid) {
+          const profile = await getUserProfileByUid(uid);
+          if (profile) {
+            name = profile.fullName || name;
+            email = profile.email || email;
+            phone = profile.phone || phone;
+            country = profile.country || country;
+          }
+        }
+
+        setFormData({
+          fullName: name,
+          email: email,
+          phone: phone,
+          country: country,
+          preferredContact: 'Email',
+        });
+      } catch (err) {
+        console.error('Error loading profile:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, []);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -35,15 +85,40 @@ export default function ProfileView() {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Saved Profile:', formData, notifications);
+    setSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      const stored = getStoredUser();
+      const user = auth.currentUser;
+      const uid = user?.uid || stored?.uid;
+
+      if (uid) {
+        await updateUserProfile(uid, {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          country: formData.country,
+        });
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleLogout = () => {
-    // Perform logout logic here
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {}
     router.push('/login');
   };
+
+  const initialLetter = formData.fullName ? formData.fullName.charAt(0).toUpperCase() : (formData.email ? formData.email.charAt(0).toUpperCase() : 'U');
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen p-6 sm:p-10 space-y-8 max-w-4xl">
@@ -60,10 +135,9 @@ export default function ProfileView() {
           </Link>
           <button className="p-2 text-gray-500 hover:text-gray-700 relative rounded-full hover:bg-slate-100">
             <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
           <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-            A
+            {initialLetter}
           </div>
         </div>
       </div>
@@ -161,13 +235,27 @@ export default function ProfileView() {
           </div>
 
           {/* Save Button */}
-          <div className="pt-2">
+          <div className="pt-2 flex items-center gap-3">
             <button
               type="submit"
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-xs transition-colors cursor-pointer"
+              disabled={saving}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-2"
             >
-              Save Changes
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
             </button>
+            {saveSuccess && (
+              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                <Check className="w-4 h-4" />
+                Profile updated successfully!
+              </span>
+            )}
           </div>
         </form>
 
