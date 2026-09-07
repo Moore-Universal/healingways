@@ -39,24 +39,24 @@ export default function MessagesPage() {
             </div>
 
             {/* Message Bubble */}
-            <div className="max-w-md bg-slate-50 border border-slate-200/60 rounded-2xl p-4 space-y-1">
-              <p className="text-xs text-slate-700 leading-relaxed">
+            <div className="max-w-md bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1.5 shadow-2xs">
+              <p className="text-sm font-medium text-slate-900 leading-relaxed">
                 Thanks for reaching out — we&apos;ve received your consultation request and will begin reviewing your case shortly.
               </p>
-              <span className="text-[10px] text-slate-400 block">Just now</span>
+              <span className="text-xs font-semibold text-slate-500 block">Just now</span>
             </div>
           </div>
 
           {/* Input Area */}
-          <div className="flex items-center gap-3 pt-4 border-t border-slate-100 mt-6">
+          <div className="flex items-center gap-3 pt-4 border-t border-slate-200 mt-6">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Type your message to care coordinator..."
+              className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
             />
-            <button className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-full transition-colors">
+            <button className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors shadow-2xs cursor-pointer">
               Send
             </button>
           </div>

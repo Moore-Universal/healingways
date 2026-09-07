@@ -80,14 +80,14 @@ export default function ProfileView() {
       <div className="space-y-6 max-w-xl">
         
         {/* Personal Information Card */}
-        <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+        <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block mb-2">
             PERSONAL INFORMATION
           </span>
 
           {/* Full Name */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Full Name
             </label>
             <input
@@ -95,13 +95,13 @@ export default function ProfileView() {
               name="fullName"
               value={formData.fullName}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
             />
           </div>
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Email
             </label>
             <input
@@ -109,13 +109,13 @@ export default function ProfileView() {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
             />
           </div>
 
           {/* Phone */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Phone
             </label>
             <input
@@ -123,13 +123,14 @@ export default function ProfileView() {
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              placeholder="+1 (555) 000-0000"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
             />
           </div>
 
           {/* Country */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Country
             </label>
             <input
@@ -137,20 +138,20 @@ export default function ProfileView() {
               name="country"
               value={formData.country}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
             />
           </div>
 
           {/* Preferred Contact Method */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Preferred Contact Method
             </label>
             <select
               name="preferredContact"
               value={formData.preferredContact}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs cursor-pointer"
             >
               <option value="Email">Email</option>
               <option value="Phone">Phone</option>
@@ -163,7 +164,7 @@ export default function ProfileView() {
           <div className="pt-2">
             <button
               type="submit"
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm transition-colors"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               Save Changes
             </button>
@@ -171,7 +172,7 @@ export default function ProfileView() {
         </form>
 
         {/* Notification Preferences Card */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block mb-2">
             NOTIFICATION PREFERENCES
           </span>
@@ -183,7 +184,7 @@ export default function ProfileView() {
                 type="button"
                 onClick={() => handleToggle('email')}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  notifications.email ? 'bg-emerald-600' : 'bg-gray-200'
+                  notifications.email ? 'bg-emerald-600' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -192,7 +193,7 @@ export default function ProfileView() {
                   }`}
                 />
               </button>
-              <span className="text-xs sm:text-sm text-slate-800 font-medium">
+              <span className="text-sm text-slate-900 font-bold">
                 Email notifications
               </span>
             </div>
@@ -203,7 +204,7 @@ export default function ProfileView() {
                 type="button"
                 onClick={() => handleToggle('sms')}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  notifications.sms ? 'bg-emerald-600' : 'bg-gray-200'
+                  notifications.sms ? 'bg-emerald-600' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -212,7 +213,7 @@ export default function ProfileView() {
                   }`}
                 />
               </button>
-              <span className="text-xs sm:text-sm text-slate-800 font-medium">
+              <span className="text-sm text-slate-900 font-bold">
                 SMS notifications
               </span>
             </div>
@@ -223,7 +224,7 @@ export default function ProfileView() {
                 type="button"
                 onClick={() => handleToggle('whatsapp')}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  notifications.whatsapp ? 'bg-emerald-600' : 'bg-gray-200'
+                  notifications.whatsapp ? 'bg-emerald-600' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -232,7 +233,7 @@ export default function ProfileView() {
                   }`}
                 />
               </button>
-              <span className="text-xs sm:text-sm text-slate-800 font-medium">
+              <span className="text-sm text-slate-900 font-bold">
                 WhatsApp notifications
               </span>
             </div>

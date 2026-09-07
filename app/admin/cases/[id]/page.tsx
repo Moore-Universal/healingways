@@ -435,7 +435,7 @@ export default function AdminCaseDetailPage() {
       </div>
 
       {/* CARD 1: INITIAL CONSULTATION (Snapshot 1) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
             INITIAL CONSULTATION
@@ -451,59 +451,59 @@ export default function AdminCaseDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
           
           {/* Row 1 */}
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               PATIENT FOR
             </div>
-            <div className="text-sm font-bold text-slate-900">
-              {caseRecord.patient_for || caseRecord.consultation_for || ''}
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+              {caseRecord.patient_for || caseRecord.consultation_for || 'Myself (Default)'}
             </div>
           </div>
 
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               PHONE
             </div>
-            <div className="text-sm font-bold text-slate-900">
-              {caseRecord.patient_phone || ''}
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+              {caseRecord.patient_phone || 'None provided'}
             </div>
           </div>
 
           {/* Row 2 (Pale Mint Tint) */}
-          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+          <div className="bg-[#eaf7ee] rounded-xl p-4 border border-emerald-200/90">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1.5">
               LOOKING FOR
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.looking_for || caseRecord.support_type || 'Not sure, I need guidance'}
             </div>
           </div>
 
-          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+          <div className="bg-[#eaf7ee] rounded-xl p-4 border border-emerald-200/90">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1.5">
               AREA OF NEED
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.healthcare_area || caseRecord.need || 'Eye Care'}
             </div>
           </div>
 
           {/* Row 3 (Full Width Situation) */}
-          <div className="md:col-span-2 bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="md:col-span-2 bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               SITUATION DESCRIBED BY PATIENT
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-relaxed">
               &quot;{caseRecord.situation || caseRecord.situation_description || 'as'}&quot;
             </div>
           </div>
 
           {/* Row 4 */}
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               DIAGNOSED?
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.diagnosed ||
                 (caseRecord.has_diagnosis
                   ? `${caseRecord.has_diagnosis}${caseRecord.diagnosis ? ' — ' + caseRecord.diagnosis : ''}`
@@ -511,40 +511,40 @@ export default function AdminCaseDetailPage() {
             </div>
           </div>
 
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               TREATMENT STATUS
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.treatment_status || 'Not started treatment'}
             </div>
           </div>
 
           {/* Row 5 (Pale Mint Tint) */}
-          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+          <div className="bg-[#eaf7ee] rounded-xl p-4 border border-emerald-200/90">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1.5">
               OPEN TO CARE ABROAD?
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.open_to_care_abroad || caseRecord.care_outside_country || 'Not sure'}
             </div>
           </div>
 
-          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+          <div className="bg-[#eaf7ee] rounded-xl p-4 border border-emerald-200/90">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1.5">
               PREFERRED LOCATION
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.preferred_location || caseRecord.preferred_destination || 'West Africa'}
             </div>
           </div>
 
           {/* Row 6 */}
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               WHAT MATTERS MOST
             </div>
-            <div className="text-sm font-bold text-slate-900 flex flex-wrap gap-1.5">
+            <div className="text-sm sm:text-base font-bold text-slate-900 flex flex-wrap gap-1.5 leading-snug">
               <span className="inline-block">
                 {Array.isArray(caseRecord.what_matters_most)
                   ? caseRecord.what_matters_most.join(', ')
@@ -553,11 +553,11 @@ export default function AdminCaseDetailPage() {
             </div>
           </div>
 
-          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+          <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               DOCUMENTS SUBMITTED
             </div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
               {caseRecord.documents_submitted || 1} document — see the Documents card below
             </div>
           </div>
@@ -609,24 +609,24 @@ export default function AdminCaseDetailPage() {
 
         {/* Amber Stage Warning Box (Snapshot 4) */}
         {!canAdvanceStage && (
-          <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl p-4 sm:p-5 space-y-3 mt-4">
+          <div className="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-4 sm:p-5 space-y-3 mt-4">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-amber-600" />
-              <span className="font-bold text-sm text-slate-900">
+              <ShieldAlert className="w-5 h-5 text-amber-700" />
+              <span className="font-bold text-sm sm:text-base text-slate-900">
                 Can&apos;t advance to Case Review yet
               </span>
             </div>
 
             {isDocPending && (
               <div className="space-y-1 pl-1">
-                <div className="text-xs text-slate-600">
+                <div className="text-sm font-medium text-slate-800">
                   1 document still pending review
                 </div>
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="font-medium text-slate-900">{docName}</span>
+                <div className="flex items-center justify-between text-sm pt-1">
+                  <span className="font-semibold text-slate-900">{docName}</span>
                   <button
                     onClick={() => setShowDocModal(true)}
-                    className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                    className="text-sm font-bold text-blue-600 hover:underline cursor-pointer"
                   >
                     Open →
                   </button>
@@ -635,11 +635,11 @@ export default function AdminCaseDetailPage() {
             )}
 
             {openTasks.length > 0 && (
-              <div className="space-y-1 pl-1 pt-1 border-t border-amber-100/70">
-                <div className="text-xs text-slate-600">
+              <div className="space-y-1 pl-1 pt-2 border-t border-amber-200">
+                <div className="text-sm font-medium text-slate-800">
                   {openTasks.length} open task for this phase must be resolved first
                 </div>
-                <div className="text-xs font-medium text-slate-900 pt-0.5">
+                <div className="text-sm font-bold text-slate-900 pt-0.5">
                   {openTasks[0].title}
                 </div>
               </div>
@@ -648,14 +648,14 @@ export default function AdminCaseDetailPage() {
         )}
 
         {canAdvanceStage && (
-          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-between text-xs sm:text-sm">
-            <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-emerald-900 font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
               <span>All consultation prerequisites fulfilled. Ready for Case Review.</span>
             </div>
             <button
               onClick={() => setShowReviewModal(true)}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg cursor-pointer"
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs"
             >
               Begin Clinical Review
             </button>
@@ -664,14 +664,14 @@ export default function AdminCaseDetailPage() {
       </div>
 
       {/* CARD 3: CASE REVIEW (Snapshot 2) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
             CASE REVIEW
           </h2>
           <button
             onClick={() => setShowReviewModal(true)}
-            className="text-xs sm:text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+            className="text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
           >
             {caseRecord.review_text ? 'Edit Review' : 'Submit Review'}
           </button>
@@ -679,10 +679,10 @@ export default function AdminCaseDetailPage() {
 
         {caseRecord.review_text ? (
           <div className="space-y-2 pt-1">
-            <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm text-slate-800 leading-relaxed">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 leading-relaxed">
               {caseRecord.review_text}
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-600" />
               <span>
                 Clinical evaluation published by {caseRecord.coordinator_name || 'Sarah James'}
@@ -690,7 +690,7 @@ export default function AdminCaseDetailPage() {
             </div>
           </div>
         ) : (
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+          <p className="text-sm font-medium text-slate-700 leading-relaxed pt-1">
             Not yet submitted. The patient won&apos;t see a case review, and hospital recommendations
             can&apos;t be added, until you submit one.
           </p>
@@ -698,62 +698,62 @@ export default function AdminCaseDetailPage() {
       </div>
 
       {/* CARD 4: TREATMENT PLAN (Snapshot 2) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
             TREATMENT PLAN
           </h2>
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+          <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
             <Lock className="w-3.5 h-3.5" /> Locked
           </div>
         </div>
-        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1 flex items-center gap-2">
+        <p className="text-sm font-medium text-slate-700 leading-relaxed pt-1 flex items-center gap-2">
           <span>🔒 A treatment plan can be created once the patient has confirmed a hospital recommendation.</span>
         </p>
       </div>
 
       {/* CARD 5: BILLING & PAYMENTS (Snapshot 2) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
           BILLING &amp; PAYMENTS
         </h2>
 
         <div className="grid grid-cols-2 gap-4 max-w-sm">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Paid</div>
-            <div className="text-xl font-bold text-emerald-600 mt-0.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-600">Paid</div>
+            <div className="text-2xl font-bold text-emerald-700 mt-0.5">
               ${paidAmount}
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500 font-medium">Outstanding</div>
-            <div className="text-xl font-bold text-red-600 mt-0.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-600">Outstanding</div>
+            <div className="text-2xl font-bold text-red-600 mt-0.5">
               ${outstandingAmount}
             </div>
           </div>
         </div>
 
         {/* Invoice row item */}
-        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+        <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
           <div className="flex items-center gap-4">
-            <span className="text-slate-400 font-medium w-16">Today</span>
+            <span className="text-slate-600 font-semibold w-16">Today</span>
             <span className="font-bold text-slate-900">HW Service Charge</span>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            <span className="font-semibold text-slate-800">USD 300</span>
+            <span className="font-bold text-slate-900">USD 300</span>
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-3 py-0.5 rounded-full text-xs font-bold ${
                 billingStatus === 'Paid'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  : 'bg-amber-100 text-amber-800 border border-amber-200'
               }`}
             >
               {billingStatus}
             </span>
             <button
               onClick={() => setShowReceiptModal(true)}
-              className="text-xs sm:text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+              className="text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
             >
               View Receipt
             </button>
@@ -768,16 +768,16 @@ export default function AdminCaseDetailPage() {
         <div className="space-y-6">
           
           {/* CASE SUMMARY CARD (Snapshot 2 Bottom Left) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
               CASE SUMMARY
             </h2>
 
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
                   Status
-                </span>
+                </label>
                 <select
                   value={caseRecord.status}
                   onChange={async (e) => {
@@ -786,7 +786,7 @@ export default function AdminCaseDetailPage() {
                     setCaseRecord((p) => (p ? { ...p, status: next } : null));
                     showToast(`Status updated to ${next}.`);
                   }}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 font-semibold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 >
                   <option value="New">New</option>
                   <option value="Under Review">Under Review</option>
@@ -797,9 +797,9 @@ export default function AdminCaseDetailPage() {
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
                   Coordinator
-                </span>
+                </label>
                 <select
                   value={caseRecord.coordinator_name || 'Sarah James'}
                   onChange={async (e) => {
@@ -808,7 +808,7 @@ export default function AdminCaseDetailPage() {
                     setCaseRecord((p) => (p ? { ...p, coordinator_name: next } : null));
                     showToast(`Assigned to ${next}.`);
                   }}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 font-semibold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 >
                   {DEFAULT_COORDINATORS.map((coord) => (
                     <option key={coord.id} value={coord.full_name}>
@@ -819,9 +819,9 @@ export default function AdminCaseDetailPage() {
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
                   Priority
-                </span>
+                </label>
                 <select
                   value={caseRecord.priority || 'Normal'}
                   onChange={async (e) => {
@@ -830,7 +830,7 @@ export default function AdminCaseDetailPage() {
                     setCaseRecord((p) => (p ? { ...p, priority: next } : null));
                     showToast(`Priority marked as ${next}.`);
                   }}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 font-semibold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 >
                   <option value="Normal">Normal</option>
                   <option value="Medium">Medium</option>
@@ -840,10 +840,10 @@ export default function AdminCaseDetailPage() {
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
                   Area of Need
-                </span>
-                <span className="font-bold text-slate-900 block pt-1">
+                </label>
+                <span className="font-bold text-slate-900 text-sm block pt-1.5">
                   {caseRecord.healthcare_area || caseRecord.need || 'Eye Care'}
                 </span>
               </div>
@@ -851,26 +851,26 @@ export default function AdminCaseDetailPage() {
           </div>
 
           {/* DOCUMENTS CARD (Snapshot 3 Top Left) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
               DOCUMENTS
             </h2>
 
-            <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-slate-500" />
-                  <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                  <FileText className="w-4 h-4 text-slate-700" />
+                  <span className="font-bold text-slate-900 text-sm">
                     {docName}
                   </span>
                 </div>
                 <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                     docStatus === 'Accepted'
-                      ? 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : docStatus === 'Update Requested'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-amber-100 text-amber-800'
+                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      : 'bg-amber-100 text-amber-800 border border-amber-200'
                   }`}
                 >
                   {docStatus}
@@ -878,7 +878,7 @@ export default function AdminCaseDetailPage() {
               </div>
 
               {/* Action links exactly matching snapshot 3 */}
-              <div className="flex items-center gap-4 pt-1 text-xs sm:text-sm font-semibold text-blue-600">
+              <div className="flex items-center gap-4 pt-1 text-sm font-semibold text-blue-600">
                 <button
                   onClick={() => setShowDocModal(true)}
                   className="hover:underline cursor-pointer"
@@ -902,26 +902,26 @@ export default function AdminCaseDetailPage() {
           </div>
 
           {/* INTERNAL NOTES CARD (Snapshot 3 Bottom Left) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
               INTERNAL NOTES
             </h2>
 
             {/* Notes List or "No notes yet." */}
             {notesList.length === 0 ? (
-              <p className="text-xs text-slate-500">No notes yet.</p>
+              <p className="text-sm font-medium text-slate-600 italic">No notes yet.</p>
             ) : (
               <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
                 {notesList.map((note) => (
                   <div
                     key={note.id}
-                    className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1"
+                    className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1"
                   >
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span className="font-bold text-slate-700">{note.author}</span>
-                      <span>{note.date}</span>
+                    <div className="flex items-center justify-between text-xs text-slate-600">
+                      <span className="font-bold text-slate-800">{note.author}</span>
+                      <span className="font-medium">{note.date}</span>
                     </div>
-                    <p className="text-xs text-slate-800">{note.text}</p>
+                    <p className="text-sm font-medium text-slate-900 leading-relaxed">{note.text}</p>
                   </div>
                 ))}
               </div>
@@ -934,13 +934,13 @@ export default function AdminCaseDetailPage() {
                 value={newNoteInput}
                 onChange={(e) => setNewNoteInput(e.target.value)}
                 placeholder="Add an internal note..."
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all resize-none"
+                className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all resize-none shadow-2xs"
               />
               <button
                 type="button"
                 onClick={handleAddNote}
                 disabled={!newNoteInput.trim()}
-                className="bg-[#107c41] hover:bg-[#0e6b37] text-white font-semibold px-5 py-2 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                className="bg-[#107c41] hover:bg-[#0e6b37] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
               >
                 Add Note
               </button>
@@ -1083,14 +1083,14 @@ export default function AdminCaseDetailPage() {
       {showRequestInfoModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Request More Information</h3>
               <button onClick={() => setShowRequestInfoModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="text-sm font-medium text-slate-700">
               Select or specify the medical or logistical details needed from {caseRecord.patient_name}:
             </p>
 
@@ -1105,7 +1105,7 @@ export default function AdminCaseDetailPage() {
                   key={template}
                   type="button"
                   onClick={() => setRequestInfoText((prev) => (prev ? `${prev}\n• ${template}` : `• ${template}`))}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   + {template}
                 </button>
@@ -1117,14 +1117,14 @@ export default function AdminCaseDetailPage() {
               value={requestInfoText}
               onChange={(e) => setRequestInfoText(e.target.value)}
               placeholder="Type information request to send to patient..."
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
             />
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowRequestInfoModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800"
               >
                 Cancel
               </button>
@@ -1132,9 +1132,9 @@ export default function AdminCaseDetailPage() {
                 type="button"
                 disabled={sendingRequestInfo || !requestInfoText.trim()}
                 onClick={handleSendInfoRequest}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
-                {sendingRequestInfo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                {sendingRequestInfo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Send Request to Patient
               </button>
             </div>
@@ -1148,14 +1148,14 @@ export default function AdminCaseDetailPage() {
       {showReviewModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Doctor &amp; Specialist Case Review</h3>
               <button onClick={() => setShowReviewModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="text-sm font-medium text-slate-700">
               Provide clinical evaluation for {caseRecord.patient_name} ({caseRecord.need}). Submitting this review unlocks hospital recommendations.
             </p>
 
@@ -1164,14 +1164,14 @@ export default function AdminCaseDetailPage() {
               value={reviewInput}
               onChange={(e) => setReviewInput(e.target.value)}
               placeholder="e.g. Clinical assessment completed by senior specialist board. Patient is an optimal candidate for corneal collagen cross-linking / specialized ocular surgery abroad..."
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
             />
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowReviewModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800"
               >
                 Cancel
               </button>
@@ -1179,9 +1179,9 @@ export default function AdminCaseDetailPage() {
                 type="button"
                 disabled={savingReview || !reviewInput.trim()}
                 onClick={handleSubmitReview}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
-                {savingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {savingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Publish Clinical Review
               </button>
             </div>
@@ -1195,9 +1195,9 @@ export default function AdminCaseDetailPage() {
       {showReceiptModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Invoice</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Invoice</span>
                 <h3 className="font-bold text-slate-900 text-base">Healing Wayz Service Charge</h3>
               </div>
               <button onClick={() => setShowReceiptModal(false)} className="text-slate-400 hover:text-slate-600">
@@ -1205,26 +1205,26 @@ export default function AdminCaseDetailPage() {
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Case Number:</span>
-                <span className="font-bold text-slate-800">{caseRecord.case_number}</span>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-600 font-medium">Case Number:</span>
+                <span className="font-bold text-slate-900">{caseRecord.case_number}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Patient:</span>
-                <span className="font-bold text-slate-800">{caseRecord.patient_name}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-600 font-medium">Patient:</span>
+                <span className="font-bold text-slate-900">{caseRecord.patient_name}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Description:</span>
-                <span className="font-medium text-slate-800">Initial Clinical Consultation &amp; Hospital Matching</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-600 font-medium">Description:</span>
+                <span className="font-semibold text-slate-900">Initial Clinical Consultation &amp; Hospital Matching</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Status:</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-600 font-medium">Status:</span>
                 <span className={`font-bold ${billingStatus === 'Paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
                   {billingStatus}
                 </span>
               </div>
-              <div className="flex justify-between py-2 text-sm font-bold text-slate-900">
+              <div className="flex justify-between py-2.5 text-base font-bold text-slate-900">
                 <span>Total Amount:</span>
                 <span>USD $300.00</span>
               </div>
@@ -1235,12 +1235,12 @@ export default function AdminCaseDetailPage() {
                 <button
                   type="button"
                   onClick={handleMarkPaymentReceived}
-                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-2xs"
                 >
                   Record Payment (Mark Paid)
                 </button>
               ) : (
-                <div className="w-full text-center py-2 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-100">
+                <div className="w-full text-center py-2.5 bg-emerald-50 text-emerald-800 text-sm font-bold rounded-xl border border-emerald-200">
                   Payment Confirmed &amp; Recorded
                 </div>
               )}
@@ -1255,7 +1255,7 @@ export default function AdminCaseDetailPage() {
       {showDocModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <h3 className="font-bold text-slate-900 text-base">{docName}</h3>
@@ -1265,13 +1265,13 @@ export default function AdminCaseDetailPage() {
               </button>
             </div>
 
-            <div className="p-8 bg-slate-100 rounded-xl text-center space-y-2 border border-slate-200">
+            <div className="p-8 bg-slate-50 rounded-xl text-center space-y-2 border border-slate-200">
               <FileText className="w-12 h-12 text-slate-400 mx-auto" />
-              <div className="text-sm font-bold text-slate-800">Medical Document Scans</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-base font-bold text-slate-900">Medical Document Scans</div>
+              <div className="text-xs font-medium text-slate-600">
                 Submitted by {caseRecord.patient_name} · Format: PNG · Size: 1.4 MB
               </div>
-              <div className="text-xs font-semibold text-emerald-700 pt-2">
+              <div className="text-sm font-bold text-emerald-700 pt-2">
                 Status: {docStatus}
               </div>
             </div>
@@ -1280,7 +1280,7 @@ export default function AdminCaseDetailPage() {
               <button
                 type="button"
                 onClick={handleRequestDocUpdate}
-                className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                className="px-3.5 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
               >
                 Request Re-upload
               </button>
@@ -1290,7 +1290,7 @@ export default function AdminCaseDetailPage() {
                   handleAcceptDoc();
                   setShowDocModal(false);
                 }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl cursor-pointer shadow-2xs"
               >
                 Accept &amp; Verify Document
               </button>
@@ -1305,55 +1305,63 @@ export default function AdminCaseDetailPage() {
       {showAddAccomModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add Accommodation Option</h3>
               <button onClick={() => setShowAddAccomModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3.5">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Hotel / Apartment Name</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
+                  Hotel / Apartment Name
+                </label>
                 <input
                   type="text"
                   value={newAccomName}
                   onChange={(e) => setNewAccomName(e.target.value)}
                   placeholder="e.g. Radisson Blu Medical Suites"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Type &amp; Category</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
+                  Type &amp; Category
+                </label>
                 <input
                   type="text"
                   value={newAccomType}
                   onChange={(e) => setNewAccomType(e.target.value)}
                   placeholder="e.g. Serviced Apartment"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Price per Night</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
+                  Price per Night
+                </label>
                 <input
                   type="text"
                   value={newAccomPrice}
                   onChange={(e) => setNewAccomPrice(e.target.value)}
                   placeholder="e.g. $85 / night"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Proximity / Location</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
+                  Proximity / Location
+                </label>
                 <input
                   type="text"
                   value={newAccomLocation}
                   onChange={(e) => setNewAccomLocation(e.target.value)}
                   placeholder="e.g. 500m from Apollo Hospital"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 />
               </div>
             </div>
@@ -1362,7 +1370,7 @@ export default function AdminCaseDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowAddAccomModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800"
               >
                 Cancel
               </button>
@@ -1370,7 +1378,7 @@ export default function AdminCaseDetailPage() {
                 type="button"
                 disabled={!newAccomName.trim()}
                 onClick={handleAddAccommodation}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl cursor-pointer disabled:opacity-50 shadow-2xs"
               >
                 Add Option
               </button>
@@ -1385,24 +1393,24 @@ export default function AdminCaseDetailPage() {
       {showChatModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Conversation with {caseRecord.patient_name}</h3>
-                <span className="text-[11px] text-slate-500">{caseRecord.case_number} · Direct Coordinator Channel</span>
+                <span className="text-xs font-semibold text-slate-500">{caseRecord.case_number} · Direct Coordinator Channel</span>
               </div>
               <button onClick={() => setShowChatModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="h-60 overflow-y-auto space-y-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+            <div className="h-60 overflow-y-auto space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-sm">
               {chatMessages.map((msg, i) => (
-                <div key={i} className="space-y-0.5">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                    <span>{msg.sender}</span>
+                <div key={i} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-semibold">
+                    <span className="font-bold text-slate-800">{msg.sender}</span>
                     <span>{msg.time}</span>
                   </div>
-                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800">
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium leading-relaxed shadow-2xs">
                     {msg.text}
                   </div>
                 </div>
@@ -1416,12 +1424,12 @@ export default function AdminCaseDetailPage() {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Type message to patient..."
-                className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
               />
               <button
                 type="button"
                 onClick={handleSendMessage}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl cursor-pointer"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl cursor-pointer shadow-2xs"
               >
                 Send
               </button>

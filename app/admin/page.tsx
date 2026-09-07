@@ -567,7 +567,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {/* 1. New Consultations */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-          <span className="text-xs text-slate-500 font-medium">New Consultations</span>
+          <span className="text-xs text-slate-700 font-bold uppercase tracking-wider">New Consultations</span>
           <span className="text-3xl sm:text-4xl font-bold text-[#1e3a8a] mt-3">
             {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : newConsultationsCount}
           </span>
@@ -575,7 +575,7 @@ export default function AdminDashboardPage() {
 
         {/* 2. Active Cases */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-          <span className="text-xs text-slate-500 font-medium">Active Cases</span>
+          <span className="text-xs text-slate-700 font-bold uppercase tracking-wider">Active Cases</span>
           <span className="text-3xl sm:text-4xl font-bold text-emerald-600 mt-3">
             {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : activeCasesCount}
           </span>
@@ -583,7 +583,7 @@ export default function AdminDashboardPage() {
 
         {/* 3. Awaiting Patient Info */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-          <span className="text-xs text-slate-500 font-medium">Awaiting Patient Info</span>
+          <span className="text-xs text-slate-700 font-bold uppercase tracking-wider">Awaiting Patient Info</span>
           <span className="text-3xl sm:text-4xl font-bold text-amber-500 mt-3">
             {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : awaitingInfoCount}
           </span>
@@ -591,7 +591,7 @@ export default function AdminDashboardPage() {
 
         {/* 4. Documents Pending Review */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-          <span className="text-xs text-slate-500 font-medium">Documents Pending Review</span>
+          <span className="text-xs text-slate-700 font-bold uppercase tracking-wider">Documents Pending Review</span>
           <span className="text-3xl sm:text-4xl font-bold text-[#3b82f6] mt-3">
             {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : documentsPendingReviewCount}
           </span>
@@ -599,7 +599,7 @@ export default function AdminDashboardPage() {
 
         {/* 5. Open Tasks */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-          <span className="text-xs text-slate-500 font-medium">Open Tasks</span>
+          <span className="text-xs text-slate-700 font-bold uppercase tracking-wider">Open Tasks</span>
           <span className="text-3xl sm:text-4xl font-bold text-[#1e3a8a] mt-3">
             {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : openTasksCount}
           </span>
