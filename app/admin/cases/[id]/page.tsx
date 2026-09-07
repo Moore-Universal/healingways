@@ -23,6 +23,9 @@ import {
   Loader2,
   ChevronRight,
   Sparkles,
+  Calendar,
+  Plane,
+  Activity,
 } from 'lucide-react';
 import { 
   getCaseById, 
@@ -37,6 +40,11 @@ import {
   PatientCase,
   Hospital
 } from '@/app/lib/firebase/services';
+import AdminHospitalRecommendations from './_components/AdminHospitalRecommendations';
+import AdminMedicalItinerary from './_components/AdminMedicalItinerary';
+import AdminAccommodationVisa from './_components/AdminAccommodationVisa';
+import AdminTravelPreparation from './_components/AdminTravelPreparation';
+import AdminTreatmentRecovery from './_components/AdminTreatmentRecovery';
 
 const JOURNEY_STAGES = [
   'Consultation Submitted',
@@ -78,6 +86,9 @@ export default function AdminCaseDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [caseRecord, setCaseRecord] = useState<PatientCase | null>(null);
+
+  // Active Journey Workstation Tab
+  const [activeWorkstationTab, setActiveWorkstationTab] = useState<string>('Hospital Recommendation');
 
   // Modals state
   const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
@@ -183,6 +194,17 @@ export default function AdminCaseDetailPage() {
             }))
           );
         }
+        if (c.workflow_stage === 'Medical Itinerary') {
+          setActiveWorkstationTab('Medical Itinerary');
+        } else if (c.workflow_stage === 'Accommodation & Visa') {
+          setActiveWorkstationTab('Accommodation & Visa');
+        } else if (c.workflow_stage === 'Travel Preparation') {
+          setActiveWorkstationTab('Travel Preparation');
+        } else if (c.workflow_stage === 'Treatment & Recovery' || c.workflow_stage === 'Completed') {
+          setActiveWorkstationTab('Treatment & Recovery');
+        } else {
+          setActiveWorkstationTab('Hospital Recommendation');
+        }
       }
     } catch (err) {
       console.error('Error loading patient case:', err);
@@ -263,6 +285,11 @@ export default function AdminCaseDetailPage() {
 
   const [updatingStage, setUpdatingStage] = useState(false);
 
+  // Callback when child components update case data
+  const handleChildUpdateCase = (updates: Partial<PatientCase>) => {
+    setCaseRecord((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
   // Handler: Advance or Set Stage Directly as Admin
   const handleAdminSetStage = async (newStage: string) => {
     if (!caseRecord || updatingStage) return;
@@ -278,9 +305,21 @@ export default function AdminCaseDetailPage() {
             }
           : null
       );
+      if (
+        newStage === 'Hospital Recommendation' ||
+        newStage === 'Medical Itinerary' ||
+        newStage === 'Accommodation & Visa' ||
+        newStage === 'Travel Preparation' ||
+        newStage === 'Treatment & Recovery'
+      ) {
+        setActiveWorkstationTab(newStage);
+      } else if (newStage === 'Completed') {
+        setActiveWorkstationTab('Treatment & Recovery');
+      }
       showToast(`Journey stage updated to "${newStage}".`);
-    } catch (err: any) {
-      showToast(err.message || 'Error updating stage.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error updating stage.';
+      showToast(msg);
     } finally {
       setUpdatingStage(false);
     }
@@ -821,19 +860,259 @@ export default function AdminCaseDetailPage() {
         )}
       </div>
 
-      {/* CARD 4: TREATMENT PLAN (Snapshot 2) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
-            TREATMENT PLAN
-          </h2>
-          <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
-            <Lock className="w-3.5 h-3.5" /> Locked
+      {/* JOURNEY STAGE WORKSTATIONS: Admin Response Components for All Subsequent Stages */}
+      <div className="space-y-4">
+        {/* Workstation Header & Tab Switcher */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                JOURNEY STAGE WORKSTATIONS
+              </h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Manage and respond to hospital options, itinerary timelines, accommodation &amp; visas, travel logistics, and clinical updates
+              </p>
+            </div>
+            <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 self-start sm:self-auto">
+              <span>Active View:</span>
+              <span className="text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                {activeWorkstationTab}
+              </span>
+            </div>
+          </div>
+
+          {/* Workstation Navigation Tabs */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {/* Tab 1: Hospital Recommendation */}
+            <button
+              type="button"
+              onClick={() => setActiveWorkstationTab('Hospital Recommendation')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                activeWorkstationTab === 'Hospital Recommendation'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>1. Hospital Recommendation</span>
+              {caseRecord.hospital_accepted ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  Selected ✓
+                </span>
+              ) : caseRecord.hospital_declined ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Declined ⚠️
+                </span>
+              ) : caseRecord.hospitals_sent_to_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  Sent ⏳
+                </span>
+              ) : (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  activeWorkstationTab === 'Hospital Recommendation' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Draft
+                </span>
+              )}
+            </button>
+
+            {/* Tab 2: Medical Itinerary */}
+            <button
+              type="button"
+              onClick={() => setActiveWorkstationTab('Medical Itinerary')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                activeWorkstationTab === 'Medical Itinerary'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>2. Medical Itinerary</span>
+              {caseRecord.itinerary_confirmed_by_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  Confirmed ✓
+                </span>
+              ) : caseRecord.itinerary_declined ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Revision ⚠️
+                </span>
+              ) : caseRecord.itinerary_sent_to_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  Sent ⏳
+                </span>
+              ) : (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  activeWorkstationTab === 'Medical Itinerary' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Draft
+                </span>
+              )}
+            </button>
+
+            {/* Tab 3: Accommodation & Visa */}
+            <button
+              type="button"
+              onClick={() => setActiveWorkstationTab('Accommodation & Visa')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                activeWorkstationTab === 'Accommodation & Visa'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <BedDouble className="w-3.5 h-3.5" />
+              <span>3. Accommodation &amp; Visa</span>
+              {caseRecord.accommodation_visa_confirmed_by_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  Confirmed ✓
+                </span>
+              ) : caseRecord.accommodation_visa_declined ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Changes ⚠️
+                </span>
+              ) : caseRecord.accommodation_visa_sent_to_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  Sent ⏳
+                </span>
+              ) : (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  activeWorkstationTab === 'Accommodation & Visa' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Draft
+                </span>
+              )}
+            </button>
+
+            {/* Tab 4: Travel Preparation */}
+            <button
+              type="button"
+              onClick={() => setActiveWorkstationTab('Travel Preparation')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                activeWorkstationTab === 'Travel Preparation'
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <Plane className="w-3.5 h-3.5" />
+              <span>4. Travel Preparation</span>
+              {caseRecord.confirmed_by_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  Confirmed ✓
+                </span>
+              ) : caseRecord.travel_declined ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Changes ⚠️
+                </span>
+              ) : caseRecord.travel_sent_to_patient ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  Sent ⏳
+                </span>
+              ) : (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  activeWorkstationTab === 'Travel Preparation' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Draft
+                </span>
+              )}
+            </button>
+
+            {/* Tab 5: Treatment & Recovery */}
+            <button
+              type="button"
+              onClick={() => setActiveWorkstationTab('Treatment & Recovery')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                activeWorkstationTab === 'Treatment & Recovery'
+                  ? 'bg-teal-600 text-white border-teal-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>5. Treatment &amp; Recovery</span>
+              {caseRecord.workflow_stage === 'Completed' || caseRecord.stage === 'Completed' ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Treatment & Recovery' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  Finished ✓
+                </span>
+              ) : (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  activeWorkstationTab === 'Treatment & Recovery' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-800'
+                }`}>
+                  Active Care 🩺
+                </span>
+              )}
+            </button>
           </div>
         </div>
-        <p className="text-sm font-medium text-slate-700 leading-relaxed pt-1 flex items-center gap-2">
-          <span>🔒 A treatment plan can be created once the patient has confirmed a hospital recommendation.</span>
-        </p>
+
+        {/* Workstation Tab Content Component */}
+        {activeWorkstationTab === 'Hospital Recommendation' && (
+          <AdminHospitalRecommendations
+            caseRecord={caseRecord}
+            onUpdateCase={handleChildUpdateCase}
+            showToast={showToast}
+            onAdvanceStage={handleAdminSetStage}
+          />
+        )}
+
+        {activeWorkstationTab === 'Medical Itinerary' && (
+          <AdminMedicalItinerary
+            caseRecord={caseRecord}
+            onUpdateCase={handleChildUpdateCase}
+            showToast={showToast}
+            onAdvanceStage={handleAdminSetStage}
+          />
+        )}
+
+        {activeWorkstationTab === 'Accommodation & Visa' && (
+          <AdminAccommodationVisa
+            caseRecord={caseRecord}
+            onUpdateCase={handleChildUpdateCase}
+            showToast={showToast}
+            onAdvanceStage={handleAdminSetStage}
+          />
+        )}
+
+        {activeWorkstationTab === 'Travel Preparation' && (
+          <AdminTravelPreparation
+            caseRecord={caseRecord}
+            onUpdateCase={handleChildUpdateCase}
+            showToast={showToast}
+            onAdvanceStage={handleAdminSetStage}
+          />
+        )}
+
+        {activeWorkstationTab === 'Treatment & Recovery' && (
+          <AdminTreatmentRecovery
+            caseRecord={caseRecord}
+            onUpdateCase={handleChildUpdateCase}
+            showToast={showToast}
+            onAdvanceStage={handleAdminSetStage}
+          />
+        )}
       </div>
 
       {/* CARD 5: BILLING & PAYMENTS (Snapshot 2) */}
@@ -1123,19 +1402,60 @@ export default function AdminCaseDetailPage() {
             </div>
           </div>
 
-          {/* HOSPITAL RECOMMENDATIONS CARD (Snapshot 3 Top Right) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-3">
+          {/* STAGE WORKSTATION JUMP (Sidebar Navigator) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                HOSPITAL RECOMMENDATIONS
+                STAGE WORKSTATION JUMP
               </h2>
-              <div className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                <Lock className="w-3.5 h-3.5" /> Locked
-              </div>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                5 Stages
+              </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
-              🔒 Submit the case review first to unlock hospital recommendations.
+            <p className="text-xs text-slate-600 font-medium">
+              Click any stage below to jump straight into its dedicated management workstation:
             </p>
+            <div className="space-y-1.5 pt-1">
+              {[
+                { name: 'Hospital Recommendation', icon: Building2, label: '3. Hospital Choices', done: caseRecord.hospital_accepted },
+                { name: 'Medical Itinerary', icon: Calendar, label: '4. Clinical Itinerary', done: caseRecord.itinerary_confirmed_by_patient },
+                { name: 'Accommodation & Visa', icon: BedDouble, label: '5. Hotel & Visa Plan', done: caseRecord.accommodation_visa_confirmed_by_patient },
+                { name: 'Travel Preparation', icon: Plane, label: '6. Flight & Logistics', done: caseRecord.confirmed_by_patient },
+                { name: 'Treatment & Recovery', icon: Activity, label: '7. Clinical Updates', done: caseRecord.workflow_stage === 'Completed' },
+              ].map((item) => {
+                const IconComp = item.icon;
+                const isActive = activeWorkstationTab === item.name;
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => {
+                      setActiveWorkstationTab(item.name);
+                      showToast(`Switched view to ${item.name}.`);
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-50 border-blue-400 text-blue-900 ring-1 ring-blue-400/60 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.done ? (
+                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
+                        Done ✓
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">
+                        Open <ChevronRight className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* ACCOMMODATION OPTIONS CARD (Snapshot 3 Middle Right) */}
