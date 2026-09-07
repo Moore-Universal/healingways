@@ -712,42 +712,6 @@ export default function AdminCaseDetailPage() {
           </div>
 
           {/* Quick Stage Controls */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="stage-selector" className="text-xs text-slate-500 font-medium">Jump to:</label>
-              <select
-                id="stage-selector"
-                value={currentStageName}
-                disabled={updatingStage}
-                onChange={(e) => handleAdminSetStage(e.target.value)}
-                className="text-xs font-bold text-slate-800 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer"
-              >
-                {JOURNEY_STAGES.map((s, i) => (
-                  <option key={s} value={s}>
-                    {i + 1}. {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {currentStageIndex < JOURNEY_STAGES.length - 1 && (
-              <button
-                type="button"
-                disabled={updatingStage}
-                onClick={() => handleAdminSetStage(JOURNEY_STAGES[currentStageIndex + 1])}
-                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
-              >
-                {updatingStage ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <span>Advance to {JOURNEY_STAGES[currentStageIndex + 1]}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Amber Stage Warning Box (Snapshot 4) */}
