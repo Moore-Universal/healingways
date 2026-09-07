@@ -167,6 +167,8 @@ export interface PatientCase {
   document_status?: 'Pending Review' | 'Accepted' | 'Update Requested';
   billing_paid?: number;
   billing_outstanding?: number;
+  service_fee_paid?: boolean;
+  service_fee_paid_at?: string | null;
   internal_notes?: { id: string; author: string; text: string; date: string }[];
   accommodations?: { id: string; name: string; type: string; price: string; location: string }[];
   tasks?: { id: string; title: string; stage: string; status: 'open' | 'resolved'; date?: string }[];
@@ -1752,32 +1754,197 @@ export async function getAdminConversations(): Promise<
   });
 }
 
+export const DEFAULT_ACCOMMODATIONS: Accommodation[] = [
+  {
+    id: 'accom-1',
+    title: 'Apollo Executive Medical Residence',
+    location: 'Greams Road, Chennai, India',
+    tags: ['Wheelchair Accessible', '24/7 Nurse On-Call', 'Kitchenette'],
+    description: 'Specialized recovery suites situated 300m from Apollo Main Campus with daily nurse checkups and sterile linen service.',
+    proximity: '300m from Apollo Hospital',
+    features: ['Recliner Medical Bed', 'Elevator', 'Companion Breakfast', 'WiFi', 'Airport Pickup'],
+    price: '$75',
+    pricePeriod: '/night',
+    image: '/images/hospital-one.avif',
+  },
+  {
+    id: 'accom-2',
+    title: 'FMRI Care Serviced Apartments',
+    location: 'Sector 44, Gurugram, India',
+    tags: ['Family Suite', 'Full Kitchen', 'Dedicated Shuttle'],
+    description: 'Spacious 2-bedroom serviced apartment with step-free bathrooms, wheelchair ramp, and continuous sanitization protocols.',
+    proximity: '500m from Fortis Hospital',
+    features: ['Full Kitchen', 'Laundry', 'Buggy Shuttle', 'Pharmacy Delivery', '24/7 Security'],
+    price: '$95',
+    pricePeriod: '/night',
+    image: '/images/hospital-two.avif',
+  },
+  {
+    id: 'accom-3',
+    title: 'Sukhumvit International Recovery Suites',
+    location: 'Sukhumvit Soi 3, Bangkok, Thailand',
+    tags: ['VIP Recovery', 'Physical Therapy On-site', 'Post-Op Meals'],
+    description: 'Luxury recovery hotel partner offering customized dietary meal plans and bilingual nurse coordinators.',
+    proximity: '400m from Bumrungrad Hospital',
+    features: ['Nurse Station', 'In-room Oxygen Line', 'Specialist Diet', 'High-speed WiFi'],
+    price: '$110',
+    pricePeriod: '/night',
+    image: '/images/hospital-three.avif',
+  },
+  {
+    id: 'accom-4',
+    title: 'Medipol Park Recovery Residences',
+    location: 'Bagcilar, Istanbul, Turkey',
+    tags: ['Apartment Style', 'Near Campus', 'Airport Transfer'],
+    description: 'Modern furnished recovery apartments directly connected to the university hospital complex via covered walkway.',
+    proximity: 'Connected to Medipol Hospital',
+    features: ['Covered Walkway', 'Kitchen', '24/7 Concierge', 'Grocery Delivery'],
+    price: '$65',
+    pricePeriod: '/night',
+    image: '/images/hospital-four.avif',
+  }
+];
+
 export async function getHospitals(): Promise<Hospital[]> {
-  const q = query(collection(db, 'hospitals'));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Hospital));
+  try {
+    const q = query(collection(db, 'hospitals'));
+    const snapshot = await withTimeout(getDocs(q), 2500, null);
+    if (snapshot && !snapshot.empty) {
+      const fromDb = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Hospital));
+      // Merge with default ensuring no duplicates by ID or name
+      const ids = new Set(fromDb.map((h) => h.id));
+      const names = new Set(fromDb.map((h) => h.name.toLowerCase()));
+      const defaults = DEFAULT_HOSPITALS.filter((d) => !ids.has(d.id) && !names.has(d.name.toLowerCase()));
+      return [...fromDb, ...defaults];
+    }
+  } catch (err) {
+    console.warn('Error reading hospitals from Firestore, using defaults:', err);
+  }
+
+  // Check local storage for added hospitals
+  if (typeof window !== 'undefined') {
+    try {
+      const localHosp = localStorage.getItem('hw_custom_hospitals');
+      if (localHosp) {
+        const parsed: Hospital[] = JSON.parse(localHosp);
+        const ids = new Set(parsed.map((h) => h.id));
+        const defaults = DEFAULT_HOSPITALS.filter((d) => !ids.has(d.id));
+        return [...parsed, ...defaults];
+      }
+    } catch {}
+  }
+
+  return DEFAULT_HOSPITALS;
 }
 
 export async function addHospital(hospital: Omit<Hospital, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, 'hospitals'), hospital);
-  return docRef.id;
+  const newId = `hosp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const fullHospital: Hospital = { id: newId, ...hospital };
+  
+  try {
+    await setDoc(doc(db, 'hospitals', newId), hospital);
+  } catch (err) {
+    console.warn('Error persisting hospital to Firestore, caching locally:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const existing = localStorage.getItem('hw_custom_hospitals');
+      const list: Hospital[] = existing ? JSON.parse(existing) : [];
+      list.unshift(fullHospital);
+      localStorage.setItem('hw_custom_hospitals', JSON.stringify(list));
+    } catch {}
+  }
+
+  return newId;
 }
 
 export async function deleteHospital(hospitalId: string): Promise<void> {
-  await deleteDoc(doc(db, 'hospitals', hospitalId));
+  try {
+    await deleteDoc(doc(db, 'hospitals', hospitalId));
+  } catch (err) {
+    console.warn('Error deleting hospital from Firestore:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const existing = localStorage.getItem('hw_custom_hospitals');
+      if (existing) {
+        const list: Hospital[] = JSON.parse(existing);
+        const filtered = list.filter((h) => h.id !== hospitalId);
+        localStorage.setItem('hw_custom_hospitals', JSON.stringify(filtered));
+      }
+    } catch {}
+  }
 }
 
 export async function getAccommodations(): Promise<Accommodation[]> {
-  const q = query(collection(db, 'accommodations'));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Accommodation));
+  try {
+    const q = query(collection(db, 'accommodations'));
+    const snapshot = await withTimeout(getDocs(q), 2500, null);
+    if (snapshot && !snapshot.empty) {
+      const fromDb = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Accommodation));
+      const ids = new Set(fromDb.map((a) => a.id));
+      const titles = new Set(fromDb.map((a) => a.title.toLowerCase()));
+      const defaults = DEFAULT_ACCOMMODATIONS.filter((d) => !ids.has(d.id) && !titles.has(d.title.toLowerCase()));
+      return [...fromDb, ...defaults];
+    }
+  } catch (err) {
+    console.warn('Error reading accommodations from Firestore, using defaults:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const localAccom = localStorage.getItem('hw_custom_accommodations');
+      if (localAccom) {
+        const parsed: Accommodation[] = JSON.parse(localAccom);
+        const ids = new Set(parsed.map((a) => a.id));
+        const defaults = DEFAULT_ACCOMMODATIONS.filter((d) => !ids.has(d.id));
+        return [...parsed, ...defaults];
+      }
+    } catch {}
+  }
+
+  return DEFAULT_ACCOMMODATIONS;
 }
 
 export async function addAccommodation(accommodation: Omit<Accommodation, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, 'accommodations'), accommodation);
-  return docRef.id;
+  const newId = `accom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const fullAccom: Accommodation = { id: newId, ...accommodation };
+
+  try {
+    await setDoc(doc(db, 'accommodations', newId), accommodation);
+  } catch (err) {
+    console.warn('Error persisting accommodation to Firestore, caching locally:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const existing = localStorage.getItem('hw_custom_accommodations');
+      const list: Accommodation[] = existing ? JSON.parse(existing) : [];
+      list.unshift(fullAccom);
+      localStorage.setItem('hw_custom_accommodations', JSON.stringify(list));
+    } catch {}
+  }
+
+  return newId;
 }
 
 export async function deleteAccommodation(accommodationId: string): Promise<void> {
-  await deleteDoc(doc(db, 'accommodations', accommodationId));
+  try {
+    await deleteDoc(doc(db, 'accommodations', accommodationId));
+  } catch (err) {
+    console.warn('Error deleting accommodation from Firestore:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const existing = localStorage.getItem('hw_custom_accommodations');
+      if (existing) {
+        const list: Accommodation[] = JSON.parse(existing);
+        const filtered = list.filter((a) => a.id !== accommodationId);
+        localStorage.setItem('hw_custom_accommodations', JSON.stringify(filtered));
+      }
+    } catch {}
+  }
 }

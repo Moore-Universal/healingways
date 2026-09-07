@@ -11,6 +11,7 @@ import {
   MessageSquare, 
   Building2, 
   Bed, 
+  CreditCard,
   LogOut,
   X
 } from 'lucide-react';
@@ -20,10 +21,11 @@ import { useRouter } from 'next/navigation';
 const sidebarNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
   { label: 'Patient Cases', icon: Users, href: '/admin/patient-cases' },
+  { label: 'Billing & Payments', icon: CreditCard, href: '/admin/billing' },
   { label: 'Document Review', icon: FileCheck, href: '/admin/document-review' },
   { label: 'Tasks', icon: CheckSquare, href: '/admin/tasks' },
   { label: 'Messages', icon: MessageSquare, href: '/admin/messages' },
-  { label: 'Partner Network', icon: Building2, href: '/admin/partner-network' },
+  { label: 'Hospitals Catalogue', icon: Building2, href: '/admin/partner-network' },
   { label: 'Accommodation', icon: Bed, href: '/admin/accommodation-admin' },
 ];
 
