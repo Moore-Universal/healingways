@@ -698,25 +698,8 @@ export default function AdminCaseDetailPage() {
         )}
       </div>
 
-      {/* JOURNEY STAGE WORKSTATION: Current Active Stage */}
+      {/* Active Workflow Stage Section */}
       <div className="space-y-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
-              CURRENT STAGE WORKSTATION
-            </h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Sequential workflow view for the active journey stage
-            </p>
-          </div>
-          <div className="text-xs font-bold text-slate-700 flex items-center gap-2">
-            <span>Active Stage:</span>
-            <span className="text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 font-bold">
-              {activeWorkstationTab}
-            </span>
-          </div>
-        </div>
-
         {/* Workstation Content Component */}
         {activeWorkstationTab === 'Hospital Recommendation' && (
           <AdminHospitalRecommendations
