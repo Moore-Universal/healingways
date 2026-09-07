@@ -43,6 +43,48 @@ interface TeamMemberWorkload {
 // Initial snapshot seed cases ensuring exact figures and operational depth
 const INITIAL_SNAPSHOT_CASES: Partial<PatientCase>[] = [
   {
+    id: 'case-ss',
+    case_number: 'HW-2026-310079',
+    user_id: 'user-ss',
+    patient_name: 'SS',
+    patient_email: 's@a.com',
+    patient_phone: '',
+    country: 'India',
+    patient_for: '',
+    need: 'Eye Care',
+    healthcare_area: 'Eye Care',
+    looking_for: 'Not sure, I need guidance',
+    situation: 'as',
+    diagnosed: 'Unsure — as',
+    treatment_status: 'Not started treatment',
+    open_to_care_abroad: 'Not sure',
+    preferred_location: 'West Africa',
+    what_matters_most: ['Reputation'],
+    documents_submitted: 1,
+    document_name: 'Consultation page 5.PNG',
+    document_status: 'Pending Review',
+    billing_paid: 0,
+    billing_outstanding: 300,
+    workflow_stage: 'Consultation Submitted',
+    stage: 'Consultation Submitted',
+    status: 'New',
+    priority: 'Normal',
+    coordinator_name: 'Sarah James',
+    coordinator_id: 'sarah-james',
+    tasks: [
+      {
+        id: 'task-ss-1',
+        title: 'Begin case review for new patient',
+        stage: 'Consultation Submitted',
+        status: 'open',
+      },
+    ],
+    internal_notes: [],
+    accommodations: [],
+    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+  },
+  {
     id: 'case-fatima-sayed',
     case_number: 'HW-7021',
     user_id: 'user-fatima',
@@ -359,6 +401,15 @@ export default function AdminDashboardPage() {
 
   // Recent activity matching snapshot
   const recentActivities: ActivityDisplayItem[] = [
+    {
+      id: allCases.find((c) => c.patient_name === 'SS' || c.case_number === 'HW-2026-310079')?.id || 'case-ss',
+      name: 'SS',
+      badge: 'New',
+      badgeStyle: 'bg-slate-100 text-slate-700',
+      department: 'Eye Care',
+      stage: 'Consultation Submitted',
+      timeAgo: '15 minutes ago',
+    },
     {
       id: allCases.find((c) => c.patient_name.includes('Chidinma'))?.id || 'case-chidinma-adeyemi',
       name: 'Chidinma Adeyemi',

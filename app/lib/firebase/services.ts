@@ -141,6 +141,19 @@ export interface PatientCase {
   treatment_updates?: TreatmentUpdate[];
   consultation_for?: string;
   contact_name?: string;
+  patient_for?: string;
+  looking_for?: string;
+  diagnosed?: string;
+  open_to_care_abroad?: string;
+  what_matters_most?: string[] | string;
+  documents_submitted?: number;
+  document_name?: string;
+  document_status?: 'Pending Review' | 'Accepted' | 'Update Requested';
+  billing_paid?: number;
+  billing_outstanding?: number;
+  internal_notes?: { id: string; author: string; text: string; date: string }[];
+  accommodations?: { id: string; name: string; type: string; price: string; location: string }[];
+  tasks?: { id: string; title: string; stage: string; status: 'open' | 'resolved'; date?: string }[];
 }
 
 // ----------------------------------------------------
@@ -709,8 +722,10 @@ export async function getCaseById(caseId: string): Promise<PatientCase | null> {
     console.warn('Error fetching case by ID from Firestore:', err);
   }
 
-  // Fallback to default snapshot cases by id
-  const fallbackCase = DEFAULT_ADMIN_CASES.find((c) => c.id === caseId);
+  // Fallback to default snapshot cases by id, case_number or patient_name
+  const fallbackCase = DEFAULT_ADMIN_CASES.find(
+    (c) => c.id === caseId || c.case_number === caseId || c.id.toLowerCase() === caseId.toLowerCase() || (caseId.toLowerCase() === 'ss' && c.patient_name === 'SS')
+  );
   if (fallbackCase) return fallbackCase;
 
   return null;
@@ -819,6 +834,48 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
  * Snapshot admin cases matching the dashboard metrics & operational caseload
  */
 export const DEFAULT_ADMIN_CASES: PatientCase[] = [
+  {
+    id: 'case-ss',
+    case_number: 'HW-2026-310079',
+    user_id: 'user-ss',
+    patient_name: 'SS',
+    patient_email: 's@a.com',
+    patient_phone: '',
+    country: 'India',
+    patient_for: '',
+    need: 'Eye Care',
+    healthcare_area: 'Eye Care',
+    looking_for: 'Not sure, I need guidance',
+    situation: 'as',
+    diagnosed: 'Unsure — as',
+    treatment_status: 'Not started treatment',
+    open_to_care_abroad: 'Not sure',
+    preferred_location: 'West Africa',
+    what_matters_most: ['Reputation'],
+    documents_submitted: 1,
+    document_name: 'Consultation page 5.PNG',
+    document_status: 'Pending Review',
+    billing_paid: 0,
+    billing_outstanding: 300,
+    workflow_stage: 'Consultation Submitted',
+    stage: 'Consultation Submitted',
+    status: 'New',
+    priority: 'Normal',
+    coordinator_name: 'Sarah James',
+    coordinator_id: 'sarah-james',
+    tasks: [
+      {
+        id: 'task-ss-1',
+        title: 'Begin case review for new patient',
+        stage: 'Consultation Submitted',
+        status: 'open',
+      },
+    ],
+    internal_notes: [],
+    accommodations: [],
+    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+  },
   {
     id: 'case-fatima-sayed',
     case_number: 'HW-7021',

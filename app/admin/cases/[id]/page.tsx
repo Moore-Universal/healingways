@@ -5,69 +5,139 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  Loader2,
-  FileText,
+  ShieldAlert,
+  Lock,
   Check,
   X,
-  Plus,
-  Lock,
-  Building2,
-  Plane,
-  ClipboardList,
-  MessageSquareText,
+  FileText,
   CheckCircle2,
   Clock,
-  MapPinned,
-  BedDouble,
-  Activity,
+  Plus,
   Send,
-  AlertCircle
+  MessageSquare,
+  AlertCircle,
+  Eye,
+  Building2,
+  BedDouble,
+  Receipt,
+  Loader2,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { 
   getCaseById, 
   updatePatientCase, 
   adminSubmitCaseReview,
-  adminSetRecommendedHospitals,
-  adminSetMedicalItinerary,
-  adminSetAccommodationAndVisa,
-  adminSetTravelDetails,
-  addTreatmentUpdate,
-  DEFAULT_HOSPITALS,
   DEFAULT_COORDINATORS,
+  DEFAULT_HOSPITALS,
   PatientCase,
-  Hospital 
+  Hospital
 } from '@/app/lib/firebase/services';
+
+const JOURNEY_STAGES = [
+  'Consultation Submitted',
+  'Case Review',
+  'Hospital Recommendation',
+  'Medical Itinerary',
+  'Accommodation & Visa',
+  'Travel Preparation',
+  'Treatment & Recovery',
+  'Completed',
+];
+
+interface InternalNote {
+  id: string;
+  author: string;
+  text: string;
+  date: string;
+}
+
+interface CaseTask {
+  id: string;
+  title: string;
+  stage: string;
+  status: 'open' | 'resolved';
+}
+
+interface AccommodationItem {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  pricePerNight: string;
+}
 
 export default function AdminCaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const caseId = params?.id;
+  const caseId = params?.id || '';
 
   const [loading, setLoading] = useState(true);
   const [caseRecord, setCaseRecord] = useState<PatientCase | null>(null);
 
-  // Editing state for sections
+  // Modals state
+  const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
+  const [requestInfoText, setRequestInfoText] = useState('');
+  const [sendingRequestInfo, setSendingRequestInfo] = useState(false);
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewInput, setReviewInput] = useState('');
   const [savingReview, setSavingReview] = useState(false);
 
-  const [selectedHospIds, setSelectedHospIds] = useState<string[]>([]);
-  const [savingHospitals, setSavingHospitals] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [showAddAccomModal, setShowAddAccomModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
 
-  const [itineraryInput, setItineraryInput] = useState('');
-  const [savingItinerary, setSavingItinerary] = useState(false);
+  // Interactive notes state
+  const [newNoteInput, setNewNoteInput] = useState('');
+  const [notesList, setNotesList] = useState<InternalNote[]>([]);
 
-  const [accommodationInput, setAccommodationInput] = useState('');
-  const [visaInput, setVisaInput] = useState('');
-  const [savingAccom, setSavingAccom] = useState(false);
+  // Tasks state
+  const [tasksList, setTasksList] = useState<CaseTask[]>([
+    {
+      id: 'task-1',
+      title: 'Begin case review for new patient',
+      stage: 'Consultation Submitted',
+      status: 'open',
+    },
+  ]);
 
-  const [flightInput, setFlightInput] = useState('');
-  const [savingFlight, setSavingFlight] = useState(false);
+  // Document state
+  const [docStatus, setDocStatus] = useState<'Pending Review' | 'Accepted' | 'Update Requested'>('Pending Review');
+  const [docName, setDocName] = useState<string>('Consultation page 5.PNG');
 
-  const [treatmentTitle, setTreatmentTitle] = useState('');
-  const [treatmentNotes, setTreatmentNotes] = useState('');
-  const [savingTreatment, setSavingTreatment] = useState(false);
+  // Billing state
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [outstandingAmount, setOutstandingAmount] = useState<number>(300);
+  const [billingStatus, setBillingStatus] = useState<'Outstanding' | 'Paid'>('Outstanding');
 
-  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  // Accommodations state
+  const [accommodationsList, setAccommodationsList] = useState<AccommodationItem[]>([]);
+  const [newAccomName, setNewAccomName] = useState('');
+  const [newAccomType, setNewAccomType] = useState('Serviced Medical Apartment');
+  const [newAccomPrice, setNewAccomPrice] = useState('$85 / night');
+  const [newAccomLocation, setNewAccomLocation] = useState('Near Apollo Hospital, Chennai');
+
+  // Chat message state
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: string; text: string; time: string }>>([
+    {
+      sender: 'System',
+      text: 'Patient consultation submitted successfully. All intake details recorded.',
+      time: 'Today, 09:15 AM',
+    },
+  ]);
+  const [chatInput, setChatInput] = useState('');
+
+  // Toast feedback
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((curr) => (curr === msg ? null : curr));
+    }, 4000);
+  };
 
   const fetchCase = useCallback(async () => {
     if (!caseId) return;
@@ -76,15 +146,42 @@ export default function AdminCaseDetailPage() {
       const c = await getCaseById(caseId);
       if (c) {
         setCaseRecord(c);
-        setReviewInput(c.review_text || '');
-        setSelectedHospIds((c.recommended_hospitals || []).map((h) => h.id));
-        setItineraryInput(c.itinerary_notes || '');
-        setAccommodationInput(c.accommodation_details || '');
-        setVisaInput(c.visa_details || '');
-        setFlightInput(c.flight_details || '');
+        if (c.review_text) {
+          setReviewInput(c.review_text);
+        }
+        if (c.billing_paid !== undefined) {
+          setPaidAmount(c.billing_paid);
+        }
+        if (c.billing_outstanding !== undefined) {
+          setOutstandingAmount(c.billing_outstanding);
+          setBillingStatus(c.billing_outstanding === 0 ? 'Paid' : 'Outstanding');
+        }
+        if (c.document_status) {
+          setDocStatus(c.document_status);
+        }
+        if (c.document_name) {
+          setDocName(c.document_name);
+        }
+        if (c.internal_notes && c.internal_notes.length > 0) {
+          setNotesList(c.internal_notes);
+        }
+        if (c.tasks && c.tasks.length > 0) {
+          setTasksList(c.tasks);
+        }
+        if (c.accommodations && c.accommodations.length > 0) {
+          setAccommodationsList(
+            c.accommodations.map((a) => ({
+              id: a.id,
+              name: a.name,
+              type: a.type,
+              location: a.location,
+              pricePerNight: a.price,
+            }))
+          );
+        }
       }
     } catch (err) {
-      console.error('Error fetching case detail:', err);
+      console.error('Error loading patient case:', err);
     } finally {
       setLoading(false);
     }
@@ -94,538 +191,1245 @@ export default function AdminCaseDetailPage() {
     fetchCase();
   }, [fetchCase]);
 
-  // Stage 2: Submit Case Review
-  const handleSaveReview = async () => {
-    if (!caseRecord || !reviewInput.trim()) return;
+  // Helper to determine stage index (0 to 7)
+  const getStageIndex = (stageName?: string) => {
+    if (!stageName) return 0;
+    const idx = JOURNEY_STAGES.findIndex((s) => s.toLowerCase() === stageName.toLowerCase());
+    return idx !== -1 ? idx : 0;
+  };
+
+  const currentStageIndex = getStageIndex(caseRecord?.workflow_stage || caseRecord?.stage);
+  const currentStageName = caseRecord?.workflow_stage || caseRecord?.stage || 'Consultation Submitted';
+
+  // Count open tasks and pending documents
+  const openTasks = tasksList.filter((t) => t.status === 'open');
+  const isDocPending = docStatus === 'Pending Review';
+  const canAdvanceStage = !isDocPending && openTasks.length === 0;
+
+  // Handler: Add Internal Note
+  const handleAddNote = async () => {
+    if (!newNoteInput.trim() || !caseRecord) return;
+    const newNote: InternalNote = {
+      id: 'note-' + Date.now(),
+      author: caseRecord.coordinator_name || 'Sarah James',
+      text: newNoteInput.trim(),
+      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', Today',
+    };
+    const updated = [newNote, ...notesList];
+    setNotesList(updated);
+    setNewNoteInput('');
+    try {
+      await updatePatientCase(caseRecord.id, { internal_notes: updated });
+    } catch {}
+    showToast('Internal note saved successfully.');
+  };
+
+  // Handler: Accept Document
+  const handleAcceptDoc = async () => {
+    if (!caseRecord) return;
+    setDocStatus('Accepted');
+    showToast(`"${docName}" has been accepted and verified.`);
+    try {
+      await updatePatientCase(caseRecord.id, { document_status: 'Accepted' });
+    } catch {}
+  };
+
+  // Handler: Request Document Update
+  const handleRequestDocUpdate = async () => {
+    if (!caseRecord) return;
+    setDocStatus('Update Requested');
+    showToast(`Re-upload request sent to ${caseRecord.patient_name}.`);
+    try {
+      await updatePatientCase(caseRecord.id, { document_status: 'Update Requested' });
+    } catch {}
+  };
+
+  // Handler: Toggle Task
+  const handleToggleTask = async (taskId: string) => {
+    const updated = tasksList.map((t) =>
+      t.id === taskId ? { ...t, status: t.status === 'open' ? ('resolved' as const) : ('open' as const) } : t
+    );
+    setTasksList(updated);
+    if (caseRecord) {
+      try {
+        await updatePatientCase(caseRecord.id, { tasks: updated });
+      } catch {}
+    }
+  };
+
+  // Handler: Submit Review
+  const handleSubmitReview = async () => {
+    if (!reviewInput.trim() || !caseRecord) return;
     setSavingReview(true);
     try {
       await adminSubmitCaseReview(caseRecord.id, reviewInput.trim());
-      setFeedbackMsg({ text: 'Clinical review published for patient.', type: 'success' });
-      await fetchCase();
+      await updatePatientCase(caseRecord.id, {
+        workflow_stage: 'Case Review',
+        stage: 'Case Review',
+        status: 'Under Review',
+      });
+      setCaseRecord((prev) =>
+        prev
+          ? {
+              ...prev,
+              review_text: reviewInput.trim(),
+              workflow_stage: 'Case Review',
+              stage: 'Case Review',
+              status: 'Under Review',
+            }
+          : null
+      );
+      setShowReviewModal(false);
+      showToast('Clinical case review submitted and published.');
     } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to save review', type: 'error' });
+      showToast(err.message || 'Error submitting review.');
     } finally {
       setSavingReview(false);
     }
   };
 
-  // Stage 3: Save Recommended Hospitals
-  const handleSaveHospitals = async () => {
-    if (!caseRecord) return;
-    setSavingHospitals(true);
+  // Handler: Send Request for More Information
+  const handleSendInfoRequest = async () => {
+    if (!requestInfoText.trim() || !caseRecord) return;
+    setSendingRequestInfo(true);
     try {
-      const matched = DEFAULT_HOSPITALS.filter((h) => selectedHospIds.includes(h.id));
-      await adminSetRecommendedHospitals(caseRecord.id, matched);
-      setFeedbackMsg({ text: 'Hospital recommendations updated.', type: 'success' });
-      await fetchCase();
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to save hospitals', type: 'error' });
-    } finally {
-      setSavingHospitals(false);
-    }
-  };
-
-  // Stage 4: Save Medical Itinerary
-  const handleSaveItinerary = async () => {
-    if (!caseRecord || !itineraryInput.trim()) return;
-    setSavingItinerary(true);
-    try {
-      await adminSetMedicalItinerary(caseRecord.id, itineraryInput.trim());
-      setFeedbackMsg({ text: 'Medical itinerary schedule updated.', type: 'success' });
-      await fetchCase();
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to save itinerary', type: 'error' });
-    } finally {
-      setSavingItinerary(false);
-    }
-  };
-
-  // Stage 5: Save Accommodation & Visa
-  const handleSaveAccomVisa = async () => {
-    if (!caseRecord) return;
-    setSavingAccom(true);
-    try {
-      await adminSetAccommodationAndVisa(caseRecord.id, accommodationInput.trim(), visaInput.trim());
-      setFeedbackMsg({ text: 'Accommodation and visa details updated.', type: 'success' });
-      await fetchCase();
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to save accommodation & visa', type: 'error' });
-    } finally {
-      setSavingAccom(false);
-    }
-  };
-
-  // Stage 6: Save Travel Details
-  const handleSaveTravel = async () => {
-    if (!caseRecord || !flightInput.trim()) return;
-    setSavingFlight(true);
-    try {
-      await adminSetTravelDetails(caseRecord.id, flightInput.trim());
-      setFeedbackMsg({ text: 'Flight and ground transfer logistics updated.', type: 'success' });
-      await fetchCase();
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to save flight details', type: 'error' });
-    } finally {
-      setSavingFlight(false);
-    }
-  };
-
-  // Stage 7: Add Treatment Update
-  const handleAddTreatment = async () => {
-    if (!caseRecord || !treatmentTitle.trim() || !treatmentNotes.trim()) return;
-    setSavingTreatment(true);
-    try {
-      await addTreatmentUpdate(caseRecord.id, {
-        title: treatmentTitle.trim(),
-        notes: treatmentNotes.trim(),
-        authorName: caseRecord.coordinator_name || 'Sarah James',
-        authorRole: 'Care Coordinator',
-        date: new Date().toLocaleDateString('en-GB'),
+      const note: InternalNote = {
+        id: 'note-req-' + Date.now(),
+        author: caseRecord.coordinator_name || 'Sarah James',
+        text: `Requested info from patient: "${requestInfoText.trim()}"`,
+        date: 'Just now',
+      };
+      const updatedNotes = [note, ...notesList];
+      setNotesList(updatedNotes);
+      await updatePatientCase(caseRecord.id, {
+        status: 'Under Review',
+        internal_notes: updatedNotes,
       });
-      setTreatmentTitle('');
-      setTreatmentNotes('');
-      setFeedbackMsg({ text: 'Treatment update published to patient portal.', type: 'success' });
-      await fetchCase();
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Failed to add update', type: 'error' });
+      setShowRequestInfoModal(false);
+      setRequestInfoText('');
+      showToast(`Information request delivered to ${caseRecord.patient_email || caseRecord.patient_name}.`);
+    } catch (err) {
+      showToast('Failed to send request.');
     } finally {
-      setSavingTreatment(false);
+      setSendingRequestInfo(false);
     }
+  };
+
+  // Handler: Mark Payment
+  const handleMarkPaymentReceived = async () => {
+    if (!caseRecord) return;
+    setPaidAmount(300);
+    setOutstandingAmount(0);
+    setBillingStatus('Paid');
+    try {
+      await updatePatientCase(caseRecord.id, {
+        billing_paid: 300,
+        billing_outstanding: 0,
+      });
+    } catch {}
+    setShowReceiptModal(false);
+    showToast('Payment of USD $300 marked as received.');
+  };
+
+  // Handler: Add Accommodation
+  const handleAddAccommodation = async () => {
+    if (!newAccomName.trim() || !caseRecord) return;
+    const item: AccommodationItem = {
+      id: 'acc-' + Date.now(),
+      name: newAccomName.trim(),
+      type: newAccomType,
+      pricePerNight: newAccomPrice,
+      location: newAccomLocation,
+    };
+    const updated = [...accommodationsList, item];
+    setAccommodationsList(updated);
+    setNewAccomName('');
+    setShowAddAccomModal(false);
+    try {
+      await updatePatientCase(caseRecord.id, {
+        accommodations: updated.map((a) => ({
+          id: a.id,
+          name: a.name,
+          type: a.type,
+          price: a.pricePerNight,
+          location: a.location,
+        })),
+      });
+    } catch {}
+    showToast('Accommodation option added to case.');
+  };
+
+  // Handler: Send chat message
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+    const msg = {
+      sender: 'Sarah James (Coordinator)',
+      text: chatInput.trim(),
+      time: 'Just now',
+    };
+    setChatMessages((prev) => [...prev, msg]);
+    setChatInput('');
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-16 min-h-[400px]">
-        <Loader2 className="w-6 h-6 text-blue-900 animate-spin mr-2" />
-        <span className="text-sm font-medium text-slate-600">Loading case details...</span>
+      <div className="flex flex-col items-center justify-center min-h-[550px] space-y-3 font-sans">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-sm font-medium text-slate-500">Loading patient case record...</p>
       </div>
     );
   }
 
   if (!caseRecord) {
     return (
-      <div className="p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-800">Case Not Found</h2>
-        <Link href="/admin/patient-cases" className="text-emerald-700 font-semibold text-sm">
-          ← Return to Cases Directory
+      <div className="max-w-3xl mx-auto p-8 font-sans text-center space-y-4">
+        <h2 className="text-2xl font-bold text-slate-800">Case Record Not Found</h2>
+        <p className="text-sm text-slate-500">The requested case number or ID could not be loaded.</p>
+        <Link
+          href="/admin/patient-cases"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Patient Cases
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 font-sans max-w-7xl mx-auto w-full p-4 sm:p-8">
+    <div className="font-sans max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-8 space-y-6 text-[#1e293b]">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-          <Link
-            href="/admin/patient-cases"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Cases Directory
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-blue-900">
-              {caseRecord.patient_name} · <span className="text-slate-500 font-normal">{caseRecord.case_number}</span>
-            </h1>
-            <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
-              Stage: {caseRecord.workflow_stage || caseRecord.stage}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <select
-            value={caseRecord.coordinator_name || 'Sarah James'}
-            onChange={async (e) => {
-              const newCoord = e.target.value;
-              await updatePatientCase(caseRecord.id, { coordinator_name: newCoord });
-              await fetchCase();
-            }}
-            className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          >
-            {DEFAULT_COORDINATORS.map((coord) => (
-              <option key={coord.id} value={coord.full_name}>
-                Coord: {coord.full_name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={caseRecord.status}
-            onChange={async (e) => {
-              const newStatus = e.target.value as any;
-              await updatePatientCase(caseRecord.id, { status: newStatus });
-              await fetchCase();
-            }}
-            className="px-3 py-1.5 text-xs font-bold bg-blue-900 text-white rounded-lg focus:outline-none"
-          >
-            <option value="New">Status: New</option>
-            <option value="Under Review">Status: Under Review</option>
-            <option value="In Progress">Status: In Progress</option>
-            <option value="Scheduled">Status: Scheduled</option>
-            <option value="Completed">Status: Completed</option>
-          </select>
-        </div>
-      </div>
-
-      {feedbackMsg && (
-        <div
-          className={`p-4 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm font-medium ${
-            feedbackMsg.type === 'success'
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}
-        >
-          <span>{feedbackMsg.text}</span>
-          <button onClick={() => setFeedbackMsg(null)} className="text-slate-400 hover:text-slate-600">
-            <X className="w-4 h-4" />
+      {/* Toast alert */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 text-xs sm:text-sm animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Patient Intake Summary Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 border-b pb-2">
-          Patient Intake &amp; Consultation Information
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Email / Phone</span>
-            <p className="font-semibold text-slate-800">{caseRecord.patient_email || 'N/A'}</p>
-            <p className="text-slate-500">{caseRecord.patient_phone || 'N/A'}</p>
+      {/* Top Navigation */}
+      <div>
+        <Link
+          href="/admin/patient-cases"
+          className="text-sm font-semibold text-blue-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Patient Cases
+        </Link>
+      </div>
+
+      {/* Patient Name Header & Subtitle */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            {caseRecord.patient_name}
+          </h1>
+          <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1 rounded-full border border-slate-200/60">
+            {caseRecord.status || 'New'}
+          </span>
+        </div>
+        <div className="text-sm text-slate-500">
+          {caseRecord.case_number} · {caseRecord.patient_email || 's@a.com'} · {caseRecord.country || 'India'}
+        </div>
+      </div>
+
+      {/* CARD 1: INITIAL CONSULTATION (Snapshot 1) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+            INITIAL CONSULTATION
+          </h2>
+          <button
+            onClick={() => setShowRequestInfoModal(true)}
+            className="text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+          >
+            Request More Information
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+          
+          {/* Row 1 */}
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              PATIENT FOR
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.patient_for || caseRecord.consultation_for || ''}
+            </div>
           </div>
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Age / Gender / Country</span>
-            <p className="font-semibold text-slate-800">
-              {caseRecord.age ? `${caseRecord.age} yrs` : 'N/A'} · {caseRecord.gender || 'N/A'}
-            </p>
-            <p className="text-slate-500">{caseRecord.country || 'USA'}</p>
+
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              PHONE
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.patient_phone || ''}
+            </div>
           </div>
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Primary Need / Area</span>
-            <p className="font-semibold text-slate-800">{caseRecord.need}</p>
-            <p className="text-slate-500">{caseRecord.healthcare_area || 'Orthopedics'}</p>
+
+          {/* Row 2 (Pale Mint Tint) */}
+          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+              LOOKING FOR
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.looking_for || caseRecord.support_type || 'Not sure, I need guidance'}
+            </div>
           </div>
+
+          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+              AREA OF NEED
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.healthcare_area || caseRecord.need || 'Eye Care'}
+            </div>
+          </div>
+
+          {/* Row 3 (Full Width Situation) */}
+          <div className="md:col-span-2 bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              SITUATION DESCRIBED BY PATIENT
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              &quot;{caseRecord.situation || caseRecord.situation_description || 'as'}&quot;
+            </div>
+          </div>
+
+          {/* Row 4 */}
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              DIAGNOSED?
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.diagnosed ||
+                (caseRecord.has_diagnosis
+                  ? `${caseRecord.has_diagnosis}${caseRecord.diagnosis ? ' — ' + caseRecord.diagnosis : ''}`
+                  : 'Unsure — as')}
+            </div>
+          </div>
+
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              TREATMENT STATUS
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.treatment_status || 'Not started treatment'}
+            </div>
+          </div>
+
+          {/* Row 5 (Pale Mint Tint) */}
+          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+              OPEN TO CARE ABROAD?
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.open_to_care_abroad || caseRecord.care_outside_country || 'Not sure'}
+            </div>
+          </div>
+
+          <div className="bg-[#eaf7ee] rounded-xl p-3.5 border border-emerald-100/60">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70 mb-1">
+              PREFERRED LOCATION
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.preferred_location || caseRecord.preferred_destination || 'West Africa'}
+            </div>
+          </div>
+
+          {/* Row 6 */}
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              WHAT MATTERS MOST
+            </div>
+            <div className="text-sm font-bold text-slate-900 flex flex-wrap gap-1.5">
+              <span className="inline-block">
+                {Array.isArray(caseRecord.what_matters_most)
+                  ? caseRecord.what_matters_most.join(', ')
+                  : caseRecord.what_matters_most || 'Reputation'}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-[#f8fafc] rounded-xl p-3.5 border border-slate-100/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              DOCUMENTS SUBMITTED
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              {caseRecord.documents_submitted || 1} document — see the Documents card below
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* CARD 2: HEALTHCARE JOURNEY STAGE (Snapshot 4) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+          HEALTHCARE JOURNEY STAGE
+        </h2>
+
+        {/* 8-segment progress bar */}
+        <div className="grid grid-cols-8 gap-2 my-3">
+          {JOURNEY_STAGES.map((stageName, idx) => {
+            let barColor = 'bg-slate-200';
+            if (idx < currentStageIndex) {
+              barColor = 'bg-emerald-600';
+            } else if (idx === currentStageIndex) {
+              barColor = 'bg-amber-500';
+            }
+            return (
+              <div
+                key={stageName}
+                title={`Stage ${idx + 1}: ${stageName}`}
+                className={`h-2 rounded-full ${barColor} transition-all duration-300`}
+              />
+            );
+          })}
+        </div>
+
+        {/* Stage Name & Progress Ratio */}
+        <div className="flex items-center justify-between text-sm">
           <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Destination &amp; Budget</span>
-            <p className="font-semibold text-slate-800">{caseRecord.preferred_location || 'Flexible'}</p>
-            <p className="text-slate-500">{caseRecord.budget || '$5,000 - $10,000'}</p>
+            <div className="text-xs text-slate-500">Current Stage</div>
+            <div className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
+              <span>{currentStageName}</span>
+              <Lock className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-slate-500">Progress</div>
+            <div className="font-bold text-slate-900 text-sm sm:text-base mt-0.5">
+              {currentStageIndex + 1} of 8
+            </div>
           </div>
         </div>
 
-        {caseRecord.situation && (
-          <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 border border-slate-100">
-            <strong className="text-slate-800">Patient Description:</strong> {caseRecord.situation}
+        {/* Amber Stage Warning Box (Snapshot 4) */}
+        {!canAdvanceStage && (
+          <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl p-4 sm:p-5 space-y-3 mt-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-600" />
+              <span className="font-bold text-sm text-slate-900">
+                Can&apos;t advance to Case Review yet
+              </span>
+            </div>
+
+            {isDocPending && (
+              <div className="space-y-1 pl-1">
+                <div className="text-xs text-slate-600">
+                  1 document still pending review
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="font-medium text-slate-900">{docName}</span>
+                  <button
+                    onClick={() => setShowDocModal(true)}
+                    className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Open →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {openTasks.length > 0 && (
+              <div className="space-y-1 pl-1 pt-1 border-t border-amber-100/70">
+                <div className="text-xs text-slate-600">
+                  {openTasks.length} open task for this phase must be resolved first
+                </div>
+                <div className="text-xs font-medium text-slate-900 pt-0.5">
+                  {openTasks[0].title}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {canAdvanceStage && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-between text-xs sm:text-sm">
+            <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>All consultation prerequisites fulfilled. Ready for Case Review.</span>
+            </div>
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg cursor-pointer"
+            >
+              Begin Clinical Review
+            </button>
           </div>
         )}
       </div>
 
-      {/* Sequential Milestone Modules */}
-      <div className="space-y-6">
-        
-        {/* Stage 2 Module: Clinical Case Review */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-                2
-              </div>
-              <h3 className="text-sm font-bold text-blue-900">Stage 2: Doctor&apos;s Clinical Review &amp; Evaluation</h3>
-            </div>
-            {caseRecord.review_accepted ? (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Accepted by Patient
-              </span>
-            ) : (
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Awaiting Patient Acceptance
-              </span>
-            )}
-          </div>
+      {/* CARD 3: CASE REVIEW (Snapshot 2) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+            CASE REVIEW
+          </h2>
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="text-xs sm:text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+          >
+            {caseRecord.review_text ? 'Edit Review' : 'Submit Review'}
+          </button>
+        </div>
 
-          <p className="text-xs text-slate-500">
-            Enter the specialist&apos;s medical diagnosis, suitability assessment, and proposed procedure details.
+        {caseRecord.review_text ? (
+          <div className="space-y-2 pt-1">
+            <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm text-slate-800 leading-relaxed">
+              {caseRecord.review_text}
+            </div>
+            <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span>
+                Clinical evaluation published by {caseRecord.coordinator_name || 'Sarah James'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+            Not yet submitted. The patient won&apos;t see a case review, and hospital recommendations
+            can&apos;t be added, until you submit one.
           </p>
+        )}
+      </div>
 
-          <textarea
-            rows={4}
-            value={reviewInput}
-            onChange={(e) => setReviewInput(e.target.value)}
-            placeholder="e.g. Clinical assessment completed with senior orthopedic board. Candidate is well suited for bilateral computer-navigated knee arthroplasty..."
-            className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all font-sans"
-          />
+      {/* CARD 4: TREATMENT PLAN (Snapshot 2) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+            TREATMENT PLAN
+          </h2>
+          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+            <Lock className="w-3.5 h-3.5" /> Locked
+          </div>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1 flex items-center gap-2">
+          <span>🔒 A treatment plan can be created once the patient has confirmed a hospital recommendation.</span>
+        </p>
+      </div>
 
-          <button
-            type="button"
-            disabled={savingReview || !reviewInput.trim()}
-            onClick={handleSaveReview}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-          >
-            {savingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            <span>Save &amp; Publish Review</span>
-          </button>
+      {/* CARD 5: BILLING & PAYMENTS (Snapshot 2) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+          BILLING &amp; PAYMENTS
+        </h2>
+
+        <div className="grid grid-cols-2 gap-4 max-w-sm">
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Paid</div>
+            <div className="text-xl font-bold text-emerald-600 mt-0.5">
+              ${paidAmount}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Outstanding</div>
+            <div className="text-xl font-bold text-red-600 mt-0.5">
+              ${outstandingAmount}
+            </div>
+          </div>
         </div>
 
-        {/* Stage 3 Module: Hospital Recommendations */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-                3
-              </div>
-              <h3 className="text-sm font-bold text-blue-900">Stage 3: Hospital Recommendations</h3>
-            </div>
-            {caseRecord.selected_hospital_id ? (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Patient Selected Hospital
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                Pending Patient Selection
-              </span>
-            )}
+        {/* Invoice row item */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+          <div className="flex items-center gap-4">
+            <span className="text-slate-400 font-medium w-16">Today</span>
+            <span className="font-bold text-slate-900">HW Service Charge</span>
           </div>
 
-          <p className="text-xs text-slate-500">
-            Select the accredited healthcare centers presented to the patient for comparison and booking.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {DEFAULT_HOSPITALS.map((hosp) => {
-              const isChecked = selectedHospIds.includes(hosp.id);
-              return (
-                <label
-                  key={hosp.id}
-                  className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                    isChecked ? 'border-emerald-600 bg-emerald-50/40' : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedHospIds([...selectedHospIds, hosp.id]);
-                      } else {
-                        setSelectedHospIds(selectedHospIds.filter((id) => id !== hosp.id));
-                      }
-                    }}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <div className="space-y-0.5 min-w-0">
-                    <h4 className="text-xs font-bold text-blue-900 truncate">{hosp.name}</h4>
-                    <p className="text-[11px] text-slate-500">{hosp.location} · {hosp.accreditation}</p>
-                    <p className="text-[11px] font-semibold text-slate-700">{hosp.estimatedCost}</p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            disabled={savingHospitals}
-            onClick={handleSaveHospitals}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-          >
-            {savingHospitals ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
-            <span>Update Recommended Hospitals</span>
-          </button>
-        </div>
-
-        {/* Stage 4 Module: Medical Itinerary */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-                4
-              </div>
-              <h3 className="text-sm font-bold text-blue-900">Stage 4: Medical Itinerary &amp; Timeline</h3>
-            </div>
-            {caseRecord.itinerary_confirmed_by_patient ? (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed by Patient
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                Awaiting Confirmation
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-slate-500">
-            Define daily surgery slots, pre-op tests, inpatient recovery, and discharge consultations.
-          </p>
-
-          <textarea
-            rows={4}
-            value={itineraryInput}
-            onChange={(e) => setItineraryInput(e.target.value)}
-            placeholder="Day 1: Airport transfer & blood panel. Day 2: Surgical planning. Day 3: Robotic arthroplasty..."
-            className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all font-mono"
-          />
-
-          <button
-            type="button"
-            disabled={savingItinerary || !itineraryInput.trim()}
-            onClick={handleSaveItinerary}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-          >
-            {savingItinerary ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />}
-            <span>Save Medical Itinerary</span>
-          </button>
-        </div>
-
-        {/* Stage 5 Module: Accommodation & Visa */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-                5
-              </div>
-              <h3 className="text-sm font-bold text-blue-900">Stage 5: Accommodation &amp; Visa Logistics</h3>
-            </div>
-            {caseRecord.accommodation_visa_confirmed_by_patient ? (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed by Patient
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                Awaiting Confirmation
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Hotel / Serviced Suite Details</label>
-              <textarea
-                rows={3}
-                value={accommodationInput}
-                onChange={(e) => setAccommodationInput(e.target.value)}
-                placeholder="Partner suite name, room tier, duration, accessibility amenities..."
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Medical Visa Details &amp; Letters</label>
-              <textarea
-                rows={3}
-                value={visaInput}
-                onChange={(e) => setVisaInput(e.target.value)}
-                placeholder="Visa category, hospital invitation letter status, consulate liaison..."
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={savingAccom}
-            onClick={handleSaveAccomVisa}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-          >
-            {savingAccom ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BedDouble className="w-3.5 h-3.5" />}
-            <span>Save Accommodation &amp; Visa</span>
-          </button>
-        </div>
-
-        {/* Stage 6 Module: Travel & Flight Logistics */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-                6
-              </div>
-              <h3 className="text-sm font-bold text-blue-900">Stage 6: Travel Preparation &amp; Flights</h3>
-            </div>
-            {caseRecord.confirmed_by_patient ? (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Travel Confirmed
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                Awaiting Travel Readiness
-              </span>
-            )}
-          </div>
-
-          <textarea
-            rows={3}
-            value={flightInput}
-            onChange={(e) => setFlightInput(e.target.value)}
-            placeholder="Flight carrier, booking reference, airport ground escort assistance..."
-            className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
-          />
-
-          <button
-            type="button"
-            disabled={savingFlight || !flightInput.trim()}
-            onClick={handleSaveTravel}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-          >
-            {savingFlight ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plane className="w-3.5 h-3.5" />}
-            <span>Save Travel Details</span>
-          </button>
-        </div>
-
-        {/* Stage 7 Module: Treatment & Recovery Updates */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 border-b pb-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 text-xs font-bold flex items-center justify-center">
-              7
-            </div>
-            <h3 className="text-sm font-bold text-blue-900">Stage 7: Treatment &amp; Post-Op Recovery Updates</h3>
-          </div>
-
-          <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <h4 className="text-xs font-bold text-slate-800">Post New Clinical Progress Log</h4>
-            <input
-              type="text"
-              value={treatmentTitle}
-              onChange={(e) => setTreatmentTitle(e.target.value)}
-              placeholder="Update Title (e.g. Day 2 Post-Op Rehabilitation Milestones)"
-              className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <textarea
-              rows={3}
-              value={treatmentNotes}
-              onChange={(e) => setTreatmentNotes(e.target.value)}
-              placeholder="Clinical details, physical therapy measurements, recovery notes..."
-              className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <button
-              type="button"
-              disabled={savingTreatment || !treatmentTitle.trim() || !treatmentNotes.trim()}
-              onClick={handleAddTreatment}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span className="font-semibold text-slate-800">USD 300</span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                billingStatus === 'Paid'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}
             >
-              {savingTreatment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              <span>Post Update to Patient</span>
+              {billingStatus}
+            </span>
+            <button
+              onClick={() => setShowReceiptModal(true)}
+              className="text-xs sm:text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+            >
+              View Receipt
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Existing Updates Feed */}
-          {caseRecord.treatment_updates && caseRecord.treatment_updates.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Published Recovery Logs</h4>
-              {caseRecord.treatment_updates.map((upd) => (
-                <div key={upd.id} className="p-3.5 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-bold text-blue-900">{upd.title}</h5>
-                    <span className="text-[10px] text-slate-400">{upd.date}</span>
+      {/* BOTTOM 2-COLUMN SECTION (Snapshots 2 & 3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        
+        {/* LEFT COLUMN: Case Summary, Documents, Internal Notes */}
+        <div className="space-y-6">
+          
+          {/* CASE SUMMARY CARD (Snapshot 2 Bottom Left) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              CASE SUMMARY
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Status
+                </span>
+                <select
+                  value={caseRecord.status}
+                  onChange={async (e) => {
+                    const next = e.target.value as any;
+                    await updatePatientCase(caseRecord.id, { status: next });
+                    setCaseRecord((p) => (p ? { ...p, status: next } : null));
+                    showToast(`Status updated to ${next}.`);
+                  }}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="New">New</option>
+                  <option value="Under Review">Under Review</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Coordinator
+                </span>
+                <select
+                  value={caseRecord.coordinator_name || 'Sarah James'}
+                  onChange={async (e) => {
+                    const next = e.target.value;
+                    await updatePatientCase(caseRecord.id, { coordinator_name: next });
+                    setCaseRecord((p) => (p ? { ...p, coordinator_name: next } : null));
+                    showToast(`Assigned to ${next}.`);
+                  }}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {DEFAULT_COORDINATORS.map((coord) => (
+                    <option key={coord.id} value={coord.full_name}>
+                      {coord.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Priority
+                </span>
+                <select
+                  value={caseRecord.priority || 'Normal'}
+                  onChange={async (e) => {
+                    const next = e.target.value as any;
+                    await updatePatientCase(caseRecord.id, { priority: next });
+                    setCaseRecord((p) => (p ? { ...p, priority: next } : null));
+                    showToast(`Priority marked as ${next}.`);
+                  }}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="Normal">Normal</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Area of Need
+                </span>
+                <span className="font-bold text-slate-900 block pt-1">
+                  {caseRecord.healthcare_area || caseRecord.need || 'Eye Care'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* DOCUMENTS CARD (Snapshot 3 Top Left) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              DOCUMENTS
+            </h2>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                    {docName}
+                  </span>
+                </div>
+                <span
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    docStatus === 'Accepted'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : docStatus === 'Update Requested'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {docStatus}
+                </span>
+              </div>
+
+              {/* Action links exactly matching snapshot 3 */}
+              <div className="flex items-center gap-4 pt-1 text-xs sm:text-sm font-semibold text-blue-600">
+                <button
+                  onClick={() => setShowDocModal(true)}
+                  className="hover:underline cursor-pointer"
+                >
+                  Open &amp; Review
+                </button>
+                <button
+                  onClick={handleAcceptDoc}
+                  className="hover:underline cursor-pointer"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={handleRequestDocUpdate}
+                  className="hover:underline cursor-pointer"
+                >
+                  Request Update
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* INTERNAL NOTES CARD (Snapshot 3 Bottom Left) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              INTERNAL NOTES
+            </h2>
+
+            {/* Notes List or "No notes yet." */}
+            {notesList.length === 0 ? (
+              <p className="text-xs text-slate-500">No notes yet.</p>
+            ) : (
+              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                {notesList.map((note) => (
+                  <div
+                    key={note.id}
+                    className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="font-bold text-slate-700">{note.author}</span>
+                      <span>{note.date}</span>
+                    </div>
+                    <p className="text-xs text-slate-800">{note.text}</p>
                   </div>
-                  <p className="text-slate-600 leading-relaxed whitespace-pre-line">{upd.notes}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Add Note textarea & button */}
+            <div className="space-y-3 pt-1">
+              <textarea
+                rows={3}
+                value={newNoteInput}
+                onChange={(e) => setNewNoteInput(e.target.value)}
+                placeholder="Add an internal note..."
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all resize-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddNote}
+                disabled={!newNoteInput.trim()}
+                className="bg-[#107c41] hover:bg-[#0e6b37] text-white font-semibold px-5 py-2 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Add Note
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: Tasks, Hospital Recommendations, Accommodations, Messages */}
+        <div className="space-y-6">
+          
+          {/* TASKS CARD (Snapshot 2 Bottom Right) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              TASKS
+            </h2>
+
+            <div className="space-y-2">
+              {tasksList.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => handleToggleTask(task.id)}
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-100 rounded-xl cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center ${
+                        task.status === 'resolved'
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-slate-300 bg-white'
+                      }`}
+                    >
+                      {task.status === 'resolved' && <Check className="w-3 h-3" />}
+                    </div>
+                    <span
+                      className={`text-xs sm:text-sm font-medium ${
+                        task.status === 'resolved'
+                          ? 'line-through text-slate-400'
+                          : 'text-slate-800'
+                      }`}
+                    >
+                      {task.title}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      task.status === 'resolved'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {task.status === 'resolved' ? 'Completed' : 'Open'}
+                  </span>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          {/* HOSPITAL RECOMMENDATIONS CARD (Snapshot 3 Top Right) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                HOSPITAL RECOMMENDATIONS
+              </h2>
+              <div className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5" /> Locked
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+              🔒 Submit the case review first to unlock hospital recommendations.
+            </p>
+          </div>
+
+          {/* ACCOMMODATION OPTIONS CARD (Snapshot 3 Middle Right) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                ACCOMMODATION OPTIONS
+              </h2>
+              <button
+                onClick={() => setShowAddAccomModal(true)}
+                className="text-xs sm:text-sm font-semibold text-blue-600 hover:underline cursor-pointer"
+              >
+                + Add
+              </button>
+            </div>
+
+            {accommodationsList.length === 0 ? (
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+                No accommodation options added yet.
+              </p>
+            ) : (
+              <div className="space-y-2 pt-1">
+                {accommodationsList.map((acc) => (
+                  <div
+                    key={acc.id}
+                    className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{acc.name}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {acc.type} · {acc.location}
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700">{acc.pricePerNight}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* MESSAGES CARD (Snapshot 3 Bottom Right) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              MESSAGES
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              No unread messages.
+            </p>
+
+            <div>
+              <button
+                onClick={() => setShowChatModal(true)}
+                className="border border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>Open Conversation</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
       </div>
+
+      {/* ========================================================= */}
+      {/* MODAL: Request More Information */}
+      {/* ========================================================= */}
+      {showRequestInfoModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Request More Information</h3>
+              <button onClick={() => setShowRequestInfoModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Select or specify the medical or logistical details needed from {caseRecord.patient_name}:
+            </p>
+
+            <div className="flex flex-wrap gap-2 text-xs">
+              {[
+                'Recent ophthalmic / MRI scan',
+                'Previous hospital referral summary',
+                'Passport / Travel validity confirmation',
+                'Preferred travel dates',
+              ].map((template) => (
+                <button
+                  key={template}
+                  type="button"
+                  onClick={() => setRequestInfoText((prev) => (prev ? `${prev}\n• ${template}` : `• ${template}`))}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                >
+                  + {template}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              rows={4}
+              value={requestInfoText}
+              onChange={(e) => setRequestInfoText(e.target.value)}
+              placeholder="Type information request to send to patient..."
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowRequestInfoModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={sendingRequestInfo || !requestInfoText.trim()}
+                onClick={handleSendInfoRequest}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {sendingRequestInfo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Send Request to Patient
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: Submit Case Review */}
+      {/* ========================================================= */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Doctor &amp; Specialist Case Review</h3>
+              <button onClick={() => setShowReviewModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Provide clinical evaluation for {caseRecord.patient_name} ({caseRecord.need}). Submitting this review unlocks hospital recommendations.
+            </p>
+
+            <textarea
+              rows={6}
+              value={reviewInput}
+              onChange={(e) => setReviewInput(e.target.value)}
+              placeholder="e.g. Clinical assessment completed by senior specialist board. Patient is an optimal candidate for corneal collagen cross-linking / specialized ocular surgery abroad..."
+              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingReview || !reviewInput.trim()}
+                onClick={handleSubmitReview}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Publish Clinical Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: View Receipt */}
+      {/* ========================================================= */}
+      {showReceiptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Invoice</span>
+                <h3 className="font-bold text-slate-900 text-base">Healing Wayz Service Charge</h3>
+              </div>
+              <button onClick={() => setShowReceiptModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Case Number:</span>
+                <span className="font-bold text-slate-800">{caseRecord.case_number}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Patient:</span>
+                <span className="font-bold text-slate-800">{caseRecord.patient_name}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Description:</span>
+                <span className="font-medium text-slate-800">Initial Clinical Consultation &amp; Hospital Matching</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Status:</span>
+                <span className={`font-bold ${billingStatus === 'Paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {billingStatus}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 text-sm font-bold text-slate-900">
+                <span>Total Amount:</span>
+                <span>USD $300.00</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              {billingStatus === 'Outstanding' ? (
+                <button
+                  type="button"
+                  onClick={handleMarkPaymentReceived}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Record Payment (Mark Paid)
+                </button>
+              ) : (
+                <div className="w-full text-center py-2 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-100">
+                  Payment Confirmed &amp; Recorded
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: Document Preview */}
+      {/* ========================================================= */}
+      {showDocModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-slate-900 text-base">{docName}</h3>
+              </div>
+              <button onClick={() => setShowDocModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-8 bg-slate-100 rounded-xl text-center space-y-2 border border-slate-200">
+              <FileText className="w-12 h-12 text-slate-400 mx-auto" />
+              <div className="text-sm font-bold text-slate-800">Medical Document Scans</div>
+              <div className="text-xs text-slate-500">
+                Submitted by {caseRecord.patient_name} · Format: PNG · Size: 1.4 MB
+              </div>
+              <div className="text-xs font-semibold text-emerald-700 pt-2">
+                Status: {docStatus}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleRequestDocUpdate}
+                className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+              >
+                Request Re-upload
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleAcceptDoc();
+                  setShowDocModal(false);
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl cursor-pointer"
+              >
+                Accept &amp; Verify Document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: Add Accommodation Option */}
+      {/* ========================================================= */}
+      {showAddAccomModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Add Accommodation Option</h3>
+              <button onClick={() => setShowAddAccomModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Hotel / Apartment Name</label>
+                <input
+                  type="text"
+                  value={newAccomName}
+                  onChange={(e) => setNewAccomName(e.target.value)}
+                  placeholder="e.g. Radisson Blu Medical Suites"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Type &amp; Category</label>
+                <input
+                  type="text"
+                  value={newAccomType}
+                  onChange={(e) => setNewAccomType(e.target.value)}
+                  placeholder="e.g. Serviced Apartment"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Price per Night</label>
+                <input
+                  type="text"
+                  value={newAccomPrice}
+                  onChange={(e) => setNewAccomPrice(e.target.value)}
+                  placeholder="e.g. $85 / night"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Proximity / Location</label>
+                <input
+                  type="text"
+                  value={newAccomLocation}
+                  onChange={(e) => setNewAccomLocation(e.target.value)}
+                  placeholder="e.g. 500m from Apollo Hospital"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAddAccomModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!newAccomName.trim()}
+                onClick={handleAddAccommodation}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl cursor-pointer disabled:opacity-50"
+              >
+                Add Option
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: Messages / Direct Conversation */}
+      {/* ========================================================= */}
+      {showChatModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 font-sans">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Conversation with {caseRecord.patient_name}</h3>
+                <span className="text-[11px] text-slate-500">{caseRecord.case_number} · Direct Coordinator Channel</span>
+              </div>
+              <button onClick={() => setShowChatModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="h-60 overflow-y-auto space-y-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className="space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                    <span>{msg.sender}</span>
+                    <span>{msg.time}</span>
+                  </div>
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800">
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Type message to patient..."
+                className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={handleSendMessage}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl cursor-pointer"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
