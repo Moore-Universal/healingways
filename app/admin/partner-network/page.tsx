@@ -111,10 +111,7 @@ export default function PartnerNetworkPage() {
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  onError={(e) => {
-                    // Fallback visual if images aren't present in /public folder yet
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  referrerPolicy="no-referrer"
                 />
               </div>
 
