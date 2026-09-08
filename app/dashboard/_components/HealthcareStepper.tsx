@@ -19,7 +19,7 @@ export interface Step {
 }
 
 const defaultSteps: Step[] = [
-  { number: 1, label: 'Consultation Submitted', href: '/dashboard' },
+  { number: 1, label: 'Consultation Intake', href: '/dashboard' },
   { number: 2, label: 'Case Review', href: '/dashboard/case-review' },
   { number: 3, label: 'Hospital Recommendation', href: '/dashboard/recommendations' },
   { number: 4, label: 'Medical Itinerary', href: '/dashboard/medical-itinerary' },

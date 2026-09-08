@@ -184,7 +184,7 @@ export default function JourneyDashboard() {
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             {activeCase?.case_number 
-              ? `Case #${activeCase.case_number} · Stage: ${activeCase.workflow_stage || activeCase.stage}`
+              ? `Case #${activeCase.case_number} · Stage: ${(activeCase.workflow_stage || activeCase.stage) === 'Consultation Submitted' ? 'Consultation Intake (Under Review)' : (activeCase.workflow_stage || activeCase.stage)}`
               : 'No active consultation on file. Submit an intake to begin your clinical journey.'}
           </p>
         </div>
@@ -482,7 +482,7 @@ export default function JourneyDashboard() {
             <div className="space-y-2 text-xs text-gray-600">
               <p><strong className="text-slate-800 font-semibold">Case ID:</strong> {activeCase.case_number}</p>
               <p><strong className="text-slate-800 font-semibold">Healthcare Need:</strong> {activeCase.need}</p>
-              <p><strong className="text-slate-800 font-semibold">Current Stage:</strong> <span className="font-bold text-emerald-700">{activeCase.workflow_stage || activeCase.stage}</span></p>
+              <p><strong className="text-slate-800 font-semibold">Current Stage:</strong> <span className="font-bold text-emerald-700">{(activeCase.workflow_stage || activeCase.stage) === 'Consultation Submitted' ? 'Consultation Intake (Under Review)' : (activeCase.workflow_stage || activeCase.stage)}</span></p>
               <p><strong className="text-slate-800 font-semibold">Status:</strong> {activeCase.status}</p>
               {activeCase.diagnosis && (
                 <p><strong className="text-slate-800 font-semibold">Diagnosis:</strong> {activeCase.diagnosis}</p>

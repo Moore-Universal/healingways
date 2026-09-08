@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { registerUser, getUserActiveCase } from '@/app/lib/firebase/services';
 
 function RegisterForm() {
@@ -59,7 +59,17 @@ function RegisterForm() {
   // Password fields are strictly empty by default and never pre-filled
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
+
+  // Force clean draft password storage on mount
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('hw_signup_draft_password');
+      sessionStorage.removeItem('hw_signup_draft_confirm_password');
+    } catch {}
+  }, []);
 
   const [accountExistsError, setAccountExistsError] = useState<boolean>(false);
 
@@ -253,7 +263,7 @@ function RegisterForm() {
         )}
 
         {/* Registration Form */}
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} autoComplete="off" className="space-y-4">
           {/* Full Name Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-blue-900">
@@ -290,36 +300,68 @@ function RegisterForm() {
 
           {/* Password Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-blue-900">
+            <label htmlFor="hw_signup_password" className="block text-xs font-bold text-blue-900">
               Password (min. 6 characters)
             </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => handlePasswordChange(e.target.value)}
-              placeholder="••••••••"
-              disabled={loading}
-              autoComplete="new-password"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-            />
+            <div className="relative">
+              <input
+                id="hw_signup_password"
+                name="hw_signup_password_field"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                placeholder="Create password"
+                disabled={loading}
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-form-type="other"
+                data-1p-ignore="true"
+                className="w-full px-4 py-3 pr-11 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Confirm Password Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-blue-900">
+            <label htmlFor="hw_signup_confirm_password" className="block text-xs font-bold text-blue-900">
               Confirm Password
             </label>
-            <input
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-              placeholder="••••••••"
-              disabled={loading}
-              autoComplete="new-password"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-            />
+            <div className="relative">
+              <input
+                id="hw_signup_confirm_password"
+                name="hw_signup_confirm_password_field"
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                placeholder="Confirm password"
+                disabled={loading}
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-form-type="other"
+                data-1p-ignore="true"
+                className="w-full px-4 py-3 pr-11 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                title={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Submit Button */}

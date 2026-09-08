@@ -468,7 +468,7 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { uid: str
       const existingInReg = reg[cleanEmail];
       reg[cleanEmail] = {
         ...updatedProfile,
-        password: existingInReg?.password || (profile as any).password || '',
+        password: existingInReg?.password || (profile as { password?: string }).password || '',
       };
       localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(reg));
     } catch (regErr) {
