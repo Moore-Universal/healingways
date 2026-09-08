@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Check, User, Users, Heart, Baby } from 'lucide-react';
-import { saveUserProfile } from '@/app/lib/firebase/services';
 
 const STEPS = [
   { id: 1, label: 'About You' },
@@ -148,22 +147,7 @@ export default function StepOneAboutYou({ onNext, initialData = {} }: StepOnePro
     setLoading(true);
 
     try {
-      let resolvedUserId = '';
-      resolvedUserId = `patient_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
-      // Save additional profile fields into Firestore & storage if needed
-      try {
-        await saveUserProfile({
-          uid: resolvedUserId,
-          email: cleanEmail,
-          fullName: formData.fullName,
-          phone: formData.phone,
-          country: formData.country,
-          role: 'patient',
-        });
-      } catch (saveErr) {
-        console.warn('Profile save warning:', saveErr);
-      }
+      const resolvedUserId = `patient_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('hw_user_email', cleanEmail);

@@ -465,9 +465,10 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { uid: str
     // Also persist in the local registration registry for robust authentication integration
     try {
       const reg = getLocalRegisteredUsers();
+      const existingInReg = reg[cleanEmail];
       reg[cleanEmail] = {
         ...updatedProfile,
-        password: reg[cleanEmail]?.password || '', // preserve local password if any, else blank
+        password: existingInReg?.password || (profile as any).password || '',
       };
       localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(reg));
     } catch (regErr) {
@@ -498,26 +499,33 @@ export async function registerUser(params: {
   const cleanEmail = params.email.trim().toLowerCase();
   const role = params.role || (cleanEmail.includes('admin') ? 'admin' : 'patient');
 
-  // 1. Check if user already exists in Firestore or local registry
+  // 1. Check if a registered account with a password already exists
   const existing = await getUserProfileByEmail(cleanEmail);
-  if (existing) {
+  const existingRaw = existing as (UserProfile & { password?: string; isRegistered?: boolean }) | null;
+  const isAlreadyRegistered = Boolean(
+    existingRaw && (existingRaw.password || existingRaw.isRegistered === true)
+  );
+
+  if (isAlreadyRegistered) {
     return {
       success: false,
       reason: 'email_already_in_use',
-      error: 'An account with this email address already exists. Please sign in.',
+      error: 'An account with this email address is already registered. Please sign in with your password.',
     };
   }
 
-  // 2. Generate deterministic UID for user profile
-  const resolvedUid = `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
+  // 2. Generate deterministic or use existing UID for user profile
+  const resolvedUid = existing?.uid || `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
   const now = new Date().toISOString();
-  const profile: UserProfile = {
+  const profile: UserProfile & { isRegistered: boolean } = {
     uid: resolvedUid,
     email: cleanEmail,
-    fullName: params.fullName?.trim() || 'Patient',
+    fullName: params.fullName?.trim() || existing?.fullName || 'Patient',
     role,
-    phone: params.phone || '',
-    createdAt: now,
+    phone: params.phone || existing?.phone || '',
+    country: existing?.country || '',
+    isRegistered: true,
+    createdAt: existing?.createdAt || now,
     updatedAt: now,
   };
 
@@ -543,6 +551,24 @@ export async function registerUser(params: {
 
   // 5. Set active user session
   setStoredUser(profile);
+
+  // 6. Link any unassigned consultation cases for this email to the new account UID
+  try {
+    const casesRef = collection(db, 'cases');
+    const q = query(casesRef, where('patient_email', '==', cleanEmail));
+    const snap = await withTimeout(getDocs(q), 2500, null);
+    if (snap && !snap.empty) {
+      for (const caseDoc of snap.docs) {
+        if (caseDoc.data().user_id !== resolvedUid) {
+          try {
+            await updateDoc(doc(db, 'cases', caseDoc.id), { user_id: resolvedUid });
+          } catch {}
+        }
+      }
+    }
+  } catch (linkErr) {
+    console.warn('Notice linking consultation cases during registration:', linkErr);
+  }
 
   return { success: true, user: profile };
 }
@@ -582,9 +608,10 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
 
   // 1. First check if the account exists in Firestore or local registry
   const firestoreUserDoc = await getUserProfileByEmail(cleanEmail);
+  const rawData = firestoreUserDoc as (UserProfile & { password?: string; isRegistered?: boolean }) | null;
 
-  // 2. If account does NOT exist, report not_found
-  if (!firestoreUserDoc) {
+  // 2. If account does NOT exist or has no registered password/status, report not_found
+  if (!firestoreUserDoc || (!rawData?.password && !rawData?.isRegistered)) {
     return {
       success: false,
       reason: 'not_found',
@@ -593,7 +620,6 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
   }
 
   // 3. Verify password if stored
-  const rawData = firestoreUserDoc as UserProfile & { password?: string };
   if (rawData.password && passwordInput && rawData.password !== passwordInput) {
     return {
       success: false,

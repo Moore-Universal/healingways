@@ -175,19 +175,27 @@ export default function PatientLoginForm() {
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-amber-900">No account found</h4>
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  We could not find an account for <strong className="font-semibold text-amber-950">{notFoundUser}</strong>.
-                  New patients must first complete the consultation intake before account creation.
+                  We could not find a registered account for <strong className="font-semibold text-amber-950">{notFoundUser}</strong>.
+                  You can create your account with a password now or start a medical consultation.
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => handleRedirectToConsultation(notFoundUser)}
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Start Consultation to Create Account</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <Link
+                href={`/signup?email=${encodeURIComponent(notFoundUser)}`}
+                className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Create Account</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleRedirectToConsultation(notFoundUser)}
+                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-amber-200 text-amber-900 text-xs font-semibold rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Start Consultation</span>
+              </button>
+            </div>
           </div>
         )}
 

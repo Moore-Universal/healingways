@@ -61,6 +61,8 @@ function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
+  const [accountExistsError, setAccountExistsError] = useState<boolean>(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -77,6 +79,7 @@ function RegisterForm() {
 
   const handleEmailChange = (val: string) => {
     setEmail(val);
+    setAccountExistsError(false);
     if (errorMessage) {
       setErrorMessage(null);
       try { sessionStorage.removeItem('hw_signup_error_msg'); } catch {}
@@ -138,6 +141,7 @@ function RegisterForm() {
 
     setLoading(true);
     setErrorMessage(null);
+    setAccountExistsError(false);
     try { sessionStorage.removeItem('hw_signup_error_msg'); } catch {}
 
     try {
@@ -170,7 +174,8 @@ function RegisterForm() {
       }
 
       if (res.reason === 'email_already_in_use') {
-        const msg = 'An account with this email address already exists. Please sign in instead.';
+        setAccountExistsError(true);
+        const msg = 'An account with this email address is already registered. Please sign in with your password.';
         setErrorMessage(msg);
         try { sessionStorage.setItem('hw_signup_error_msg', msg); } catch {}
       } else {
@@ -228,9 +233,22 @@ function RegisterForm() {
 
         {/* Error Alert Box */}
         {errorMessage && (
-          <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span>{errorMessage}</span>
+          <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+            {accountExistsError && (
+              <div className="pt-1">
+                <Link
+                  href={`/login?email=${encodeURIComponent(email)}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+                >
+                  <span>Sign in to your account</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
