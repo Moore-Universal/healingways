@@ -78,18 +78,21 @@ export interface Accommodation {
 
 export interface CaseDocument {
   id: string;
-  caseId: string;
-  userId: string;
+  caseId?: string;
+  userId?: string;
   name: string;
   fileSize?: number | string;
   fileType?: string;
   fileUrl?: string;
   category?: string;
+  type?: string;
   stage?: string;
   uploadedBy?: 'admin' | 'patient';
   uploadedByName?: string;
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
+  date?: string;
+  status?: string;
 }
 
 export interface TreatmentUpdate {
@@ -1108,6 +1111,266 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
 /**
  * Retrieves all cases for the admin dashboard
  */
+export const DEFAULT_PATIENT_CASES: PatientCase[] = [
+  {
+    id: 'case_2026_001',
+    case_number: 'HW-2026-849201',
+    user_id: 'user_amara_001',
+    patient_name: 'Amara Okafor',
+    patient_email: 'amara.okafor@example.com',
+    patient_phone: '+234 803 123 4567',
+    age: '42',
+    gender: 'Female',
+    country: 'Nigeria',
+    state: 'Lagos',
+    need: 'Cardiology & Valve Replacement',
+    healthcare_area: 'Cardiovascular Surgery',
+    situation: 'Seeking minimally invasive mitral valve repair with experienced cardiac surgeons in Germany or India.',
+    situation_description: 'Diagnosed with severe mitral valve regurgitation. Requires surgical intervention within 6 weeks.',
+    has_diagnosis: 'Yes',
+    diagnosis: 'Severe Mitral Valve Regurgitation',
+    treatment_status: 'Under Medical Management',
+    care_outside_country: 'Yes',
+    preferred_destination: 'Germany / India',
+    preferred_location: 'Berlin, Germany',
+    time_frame: 'Within 1 month',
+    budget: '$15,000 - $30,000',
+    companions: '1 Companion (Spouse)',
+    special_assistance: 'Airport Wheelchair Assistance',
+    stage: 'Case Review',
+    workflow_stage: 'Case Review',
+    status: 'Under Review',
+    priority: 'Urgent',
+    coordinator_id: 'coord-1',
+    coordinator_name: 'Sarah James',
+    created_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    documents_submitted: 3,
+    document_status: 'Pending Review',
+    billing_paid: 300,
+    billing_outstanding: 0,
+    service_fee_paid: true,
+    documents: [
+      { id: 'doc-1', name: 'Echocardiogram_Report_Jan2026.pdf', type: 'Cardiology', date: '2026-01-15', status: 'Pending Review' },
+      { id: 'doc-2', name: 'ECG_12Lead_Trace.pdf', type: 'Lab Results', date: '2026-01-18', status: 'Accepted' },
+    ],
+    tasks: [
+      { id: 't-1', title: 'Review Echocardiogram DICOM files', stage: 'Case Review', status: 'open', date: '2026-01-20' },
+      { id: 't-2', title: 'Schedule preliminary video consultation', stage: 'Case Review', status: 'open', date: '2026-01-21' }
+    ]
+  },
+  {
+    id: 'case_2026_002',
+    case_number: 'HW-2026-531971',
+    user_id: 'user_david_002',
+    patient_name: 'David Chen',
+    patient_email: 'david.chen@example.com',
+    patient_phone: '+1 415 555 0192',
+    age: '58',
+    gender: 'Male',
+    country: 'United States',
+    state: 'California',
+    need: 'Orthopedic Knee Replacement',
+    healthcare_area: 'Orthopedics',
+    situation: 'Bilateral severe knee osteoarthritis causing mobility restriction. Seeking joint replacement specialist.',
+    situation_description: 'Chronic pain for 4 years, conservative therapy no longer effective.',
+    has_diagnosis: 'Yes',
+    diagnosis: 'Bilateral Knee Osteoarthritis',
+    treatment_status: 'Scheduled for Surgery',
+    care_outside_country: 'Yes',
+    preferred_destination: 'South Korea / Thailand',
+    preferred_location: 'Seoul, South Korea',
+    time_frame: 'Within 2 months',
+    budget: '$20,000 - $40,000',
+    companions: '1 Companion',
+    special_assistance: 'Post-op rehabilitation suite',
+    stage: 'Hospital Recommendation',
+    workflow_stage: 'Hospital Recommendation',
+    status: 'In Progress',
+    priority: 'Normal',
+    coordinator_id: 'coord-2',
+    coordinator_name: 'Dr. Elena Vance',
+    created_at: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    documents_submitted: 4,
+    document_status: 'Accepted',
+    billing_paid: 300,
+    billing_outstanding: 0,
+    service_fee_paid: true,
+    documents: [
+      { id: 'doc-3', name: 'Knee_XRay_Bilateral.pdf', type: 'Imaging', date: '2026-01-10', status: 'Accepted' },
+      { id: 'doc-4', name: 'MRI_LeftKnee_Full.pdf', type: 'Imaging', date: '2026-01-12', status: 'Accepted' }
+    ]
+  },
+  {
+    id: 'case_2026_003',
+    case_number: 'HW-2026-102938',
+    user_id: 'user_fatima_003',
+    patient_name: 'Fatima Al-Mansoor',
+    patient_email: 'fatima.almansoor@example.com',
+    patient_phone: '+971 50 123 9876',
+    age: '35',
+    gender: 'Female',
+    country: 'United Arab Emirates',
+    state: 'Dubai',
+    need: 'Oncology & Specialized Immunotherapy',
+    healthcare_area: 'Oncology',
+    situation: 'Seeking secondary clinical opinion and advanced immunotherapy protocols for Stage II Triple-Negative Breast Cancer.',
+    situation_description: 'Completed first-line chemotherapy; looking for clinical trial availability abroad.',
+    has_diagnosis: 'Yes',
+    diagnosis: 'Triple-Negative Breast Carcinoma',
+    treatment_status: 'First Line Completed',
+    care_outside_country: 'Yes',
+    preferred_destination: 'United Kingdom / Switzerland',
+    preferred_location: 'London, UK',
+    time_frame: 'Immediate',
+    budget: '$40,000+',
+    companions: '2 Companions',
+    special_assistance: 'Private Translation & Chauffeur',
+    stage: 'Consultation Submitted',
+    workflow_stage: 'Consultation Submitted',
+    status: 'New',
+    priority: 'Urgent',
+    coordinator_id: null,
+    coordinator_name: null,
+    created_at: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    documents_submitted: 2,
+    document_status: 'Pending Review',
+    billing_paid: 0,
+    billing_outstanding: 300,
+    service_fee_paid: false,
+    documents: [
+      { id: 'doc-5', name: 'Pathology_Biopsy_Report.pdf', type: 'Oncology', date: '2026-01-19', status: 'Pending Review' }
+    ]
+  },
+  {
+    id: 'case_2026_004',
+    case_number: 'HW-2026-749204',
+    user_id: 'user_kwame_004',
+    patient_name: 'Kwame Mensah',
+    patient_email: 'kwame.mensah@example.com',
+    patient_phone: '+233 24 456 7890',
+    age: '50',
+    gender: 'Male',
+    country: 'Ghana',
+    state: 'Accra',
+    need: 'Neurology & Spinal Fusion',
+    healthcare_area: 'Neurosurgery',
+    situation: 'Lumbar disc herniation with severe radiculopathy. Seeking minimally invasive spine surgery.',
+    situation_description: 'L4-L5 disc protrusion diagnosed on MRI.',
+    has_diagnosis: 'Yes',
+    diagnosis: 'L4-L5 Disc Herniation',
+    treatment_status: 'Conservative Management Failed',
+    care_outside_country: 'Yes',
+    preferred_destination: 'India / Turkey',
+    preferred_location: 'Mumbai, India',
+    time_frame: 'Within 2-3 weeks',
+    budget: '$10,000 - $20,000',
+    companions: '1 Companion',
+    special_assistance: 'Wheelchair & Ground Ambulance Transfer',
+    stage: 'Medical Itinerary',
+    workflow_stage: 'Medical Itinerary',
+    status: 'In Progress',
+    priority: 'High',
+    coordinator_id: 'coord-3',
+    coordinator_name: 'Daniel Okoro',
+    created_at: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    documents_submitted: 3,
+    document_status: 'Accepted',
+    billing_paid: 300,
+    billing_outstanding: 0,
+    service_fee_paid: true
+  },
+  {
+    id: 'case_2026_005',
+    case_number: 'HW-2026-902184',
+    user_id: 'user_sophia_005',
+    patient_name: 'Sophia Martinez',
+    patient_email: 'sophia.martinez@example.com',
+    patient_phone: '+1 305 555 8192',
+    age: '29',
+    gender: 'Female',
+    country: 'Mexico',
+    state: 'CDMX',
+    need: 'Bariatric & Metabolic Surgery',
+    healthcare_area: 'Bariatrics',
+    situation: 'Laparoscopic Sleeve Gastrectomy inquiry for metabolic health improvement.',
+    situation_description: 'BMI 38 with early hypertension. Cleared by primary physician for surgical evaluation.',
+    has_diagnosis: 'Yes',
+    diagnosis: 'Class II Obesity with Metabolic Risk',
+    treatment_status: 'Evaluated',
+    care_outside_country: 'Yes',
+    preferred_destination: 'Colombia / Costa Rica',
+    preferred_location: 'Bogota, Colombia',
+    time_frame: 'Within 1 month',
+    budget: '$7,000 - $12,000',
+    companions: '1 Companion',
+    special_assistance: 'Dietary coordination',
+    stage: 'Travel Preparation',
+    workflow_stage: 'Travel Preparation',
+    status: 'Scheduled',
+    priority: 'Normal',
+    coordinator_id: 'coord-1',
+    coordinator_name: 'Sarah James',
+    created_at: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    documents_submitted: 5,
+    document_status: 'Accepted',
+    billing_paid: 300,
+    billing_outstanding: 0,
+    service_fee_paid: true
+  }
+];
+
+export async function ensureInitialCasesSeeded(): Promise<PatientCase[]> {
+  try {
+    const casesRef = collection(db, 'cases');
+    const snap = await withTimeout(getDocs(casesRef), 3000, null);
+    if (snap && !snap.empty) {
+      const existing: PatientCase[] = [];
+      snap.forEach((d) => existing.push(sanitizePatientCase(formatDoc<PatientCase>(d))));
+      const sorted = existing.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('hw_all_cases', JSON.stringify(sorted));
+        } catch {}
+      }
+      return sorted;
+    }
+
+    // Seed default cases into Firestore and localStorage
+    const seededList: PatientCase[] = DEFAULT_PATIENT_CASES.map(sanitizePatientCase);
+    for (const item of seededList) {
+      try {
+        await setDoc(doc(db, 'cases', item.id), item, { merge: true });
+      } catch (e) {
+        console.warn('Error seeding case to Firestore:', e);
+      }
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hw_all_cases', JSON.stringify(seededList));
+      } catch {}
+    }
+    return seededList;
+  } catch (err) {
+    console.warn('Error ensuring initial cases seeded:', err);
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hw_all_cases');
+        if (raw) {
+          const parsed: PatientCase[] = JSON.parse(raw);
+          if (parsed.length > 0) return parsed.map(sanitizePatientCase);
+        }
+        localStorage.setItem('hw_all_cases', JSON.stringify(DEFAULT_PATIENT_CASES));
+      } catch {}
+    }
+    return DEFAULT_PATIENT_CASES.map(sanitizePatientCase);
+  }
+}
+
 export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
   try {
     const casesRef = collection(db, 'cases');
@@ -1117,29 +1380,15 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
       snapshot.forEach((d) => {
         cases.push(sanitizePatientCase(formatDoc<PatientCase>(d)));
       });
-      // Sort descending by created_at
-      return cases.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return cases.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
     }
   } catch (err) {
     console.warn('Error fetching admin cases from Firestore:', err);
   }
 
-  // Fallback to local cases if Firestore times out
-  if (typeof window !== 'undefined') {
-    try {
-      const casesRaw = localStorage.getItem('hw_all_cases');
-      if (casesRaw) {
-        const parsed: PatientCase[] = JSON.parse(casesRaw);
-        return parsed.map(sanitizePatientCase).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      }
-      const activeRaw = localStorage.getItem('hw_active_case');
-      if (activeRaw) {
-        return [sanitizePatientCase(JSON.parse(activeRaw))];
-      }
-    } catch {}
-  }
-
-  return [];
+  // Fallback to seeding/local cases if Firestore is empty or times out
+  const seeded = await ensureInitialCasesSeeded();
+  return seeded.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 }
 
 /**
@@ -1377,7 +1626,7 @@ export function subscribeToAllCasesForAdmin(
     const casesRef = collection(db, 'cases');
     firestoreUnsubscribe = onSnapshot(
       casesRef,
-      (snapshot) => {
+      async (snapshot) => {
         if (isUnsubscribed) return;
         if (!snapshot.empty) {
           const list: PatientCase[] = [];
@@ -1392,6 +1641,11 @@ export function subscribeToAllCasesForAdmin(
             } catch {}
           }
           onUpdate(list);
+        } else {
+          const seeded = await ensureInitialCasesSeeded();
+          if (!isUnsubscribed && seeded) {
+            onUpdate(seeded);
+          }
         }
       },
       (err) => {
@@ -1479,13 +1733,6 @@ export function subscribeToUserCases(
       window.removeEventListener('storage', handleLocalUpdate);
     }
   };
-}
-
-/**
- * Initial cases seeder
- */
-export async function ensureInitialCasesSeeded(): Promise<void> {
-  return;
 }
 
 // ----------------------------------------------------
@@ -1972,18 +2219,20 @@ export async function saveCaseDocument(docData: Omit<CaseDocument, 'id' | 'creat
   }
 
   // Also append to case document record
-  try {
-    const currentCase = await getCaseById(docData.caseId);
-    if (currentCase) {
-      const existing = currentCase.documents || [];
-      const updatedDocs = [fullDoc, ...existing.filter((d) => d.id !== docId)];
-      await updatePatientCase(docData.caseId, {
-        documents: updatedDocs,
-        documents_submitted: updatedDocs.length,
-      });
+  if (docData.caseId) {
+    try {
+      const currentCase = await getCaseById(docData.caseId);
+      if (currentCase) {
+        const existing = currentCase.documents || [];
+        const updatedDocs = [fullDoc, ...existing.filter((d) => d.id !== docId)];
+        await updatePatientCase(docData.caseId, {
+          documents: updatedDocs,
+          documents_submitted: updatedDocs.length,
+        });
+      }
+    } catch (err) {
+      console.error('Error updating case documents array:', err);
     }
-  } catch (err) {
-    console.error('Error updating case documents array:', err);
   }
 
   return fullDoc;

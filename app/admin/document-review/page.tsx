@@ -46,7 +46,7 @@ export default function DocumentReviewPage() {
               caseId: c.case_number,
               caseDbId: c.id,
               category: d.category || 'Medical Record',
-              date: new Date(d.createdAt).toLocaleDateString(),
+              date: new Date(d.createdAt || d.date || Date.now()).toLocaleDateString(),
               status: 'Uploaded',
             });
           });

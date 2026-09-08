@@ -231,7 +231,7 @@ export default function StageDocumentAttachment({
                     <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
                       {doc.fileSize && <span>{doc.fileSize}</span>}
                       <span>•</span>
-                      <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                      <span>{new Date(doc.createdAt || doc.date || Date.now()).toLocaleDateString()}</span>
                       {doc.uploadedBy === 'admin' && (
                         <>
                           <span>•</span>
