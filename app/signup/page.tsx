@@ -10,12 +10,12 @@ import { registerUser, getUserActiveCase } from '@/app/lib/firebase/services';
 function RegisterForm() {
   const router = useRouter();
 
-  // Check if signup is coming directly from a completed consultation flow via URL parameters
+  // Check if signup is coming directly from an explicitly completed consultation flow via URL parameters
   const [hasCompletedConsultation] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
       const sp = new URLSearchParams(window.location.search);
-      return sp.get('from') === 'consultation' || sp.get('consultation') === 'done' || !!sp.get('caseId');
+      return sp.get('from') === 'consultation' && !!sp.get('caseId');
     } catch {
       return false;
     }
@@ -383,19 +383,6 @@ function RegisterForm() {
             )}
           </button>
         </form>
-
-        {!hasCompletedConsultation && (
-          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-center space-y-1">
-            <p className="text-xs text-slate-600">Want to submit medical records and case details first?</p>
-            <Link
-              href={email ? `/consultation?email=${encodeURIComponent(email)}` : '/consultation'}
-              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
-            >
-              Start Free Consultation Intake
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        )}
 
         <div className="border-t border-gray-100 pt-2" />
 

@@ -137,14 +137,6 @@ export default function PatientLoginForm() {
     }
   };
 
-  const handleRedirectToConsultation = (targetEmail: string) => {
-    try {
-      sessionStorage.setItem('hw_signup_draft_email', targetEmail);
-      localStorage.setItem('hw_user_email', targetEmail);
-    } catch {}
-    router.push(`/consultation?email=${encodeURIComponent(targetEmail)}`);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-gray-100 p-8 sm:p-10 space-y-6">
@@ -175,26 +167,18 @@ export default function PatientLoginForm() {
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-amber-900">No account found</h4>
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  We could not find a registered account for <strong className="font-semibold text-amber-950">{notFoundUser}</strong>.
-                  You can create your account with a password now or start a medical consultation.
+                  We couldn&apos;t find an account for <strong className="font-semibold text-amber-950">{notFoundUser}</strong>. Please sign up to create your account.
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <div className="pt-1">
               <Link
                 href={`/signup?email=${encodeURIComponent(notFoundUser)}`}
-                className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <span>Create Account</span>
+                <span>Sign Up &amp; Create Account</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <button
-                type="button"
-                onClick={() => handleRedirectToConsultation(notFoundUser)}
-                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-amber-200 text-amber-900 text-xs font-semibold rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <span>Start Consultation</span>
-              </button>
             </div>
           </div>
         )}

@@ -91,7 +91,7 @@ export default function StepSevenSuccess({
               <>
                 Your request has been filed under Case{' '}
                 <span className="font-bold text-slate-800">
-                  {caseReference || 'HW-2026-655662'}
+                  {caseReference || 'HW-Intake'}
                 </span>
                 . Our clinical coordination team is actively evaluating your medical details.
               </>

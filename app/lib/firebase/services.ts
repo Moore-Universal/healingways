@@ -288,6 +288,87 @@ function formatDoc<T>(docSnap: { id: string; data: () => DocumentData | Record<s
   } as unknown as T;
 }
 
+/**
+ * Resolves a human-friendly display name for a patient case, avoiding generic placeholders like 'Patient'
+ */
+export function resolvePatientDisplayName(c: {
+  patient_name?: string;
+  contact_name?: string;
+  patient_email?: string;
+  user_id?: string;
+}): string {
+  // 1. Explicit patient_name that is not empty and not literal generic 'Patient'
+  const pName = c.patient_name?.trim();
+  if (pName && pName.toLowerCase() !== 'patient') {
+    return pName;
+  }
+
+  // 2. Explicit contact_name that is not empty and not literal generic 'Patient'
+  const cName = c.contact_name?.trim();
+  if (cName && cName.toLowerCase() !== 'patient') {
+    return cName;
+  }
+
+  // 3. Registered accounts lookup in browser storage / active user profile
+  if (typeof window !== 'undefined') {
+    try {
+      const cleanEmail = c.patient_email?.trim().toLowerCase();
+      if (cleanEmail) {
+        const reg = getLocalRegisteredUsers();
+        if (reg[cleanEmail]?.fullName && reg[cleanEmail].fullName.toLowerCase() !== 'patient') {
+          return reg[cleanEmail].fullName.trim();
+        }
+      }
+      const storedUserRaw = localStorage.getItem(ACTIVE_USER_STORAGE_KEY) || localStorage.getItem('hw_user');
+      if (storedUserRaw) {
+        const storedUser = JSON.parse(storedUserRaw);
+        if (storedUser.fullName && storedUser.fullName.toLowerCase() !== 'patient') {
+          if (
+            (cleanEmail && storedUser.email?.toLowerCase() === cleanEmail) ||
+            (c.user_id && storedUser.uid === c.user_id)
+          ) {
+            return storedUser.fullName.trim();
+          }
+        }
+      }
+      const storedFullName = localStorage.getItem('hw_user_fullname');
+      if (storedFullName && storedFullName.toLowerCase() !== 'patient') {
+        return storedFullName.trim();
+      }
+    } catch {}
+  }
+
+  // 4. Clean user part derived from email address (e.g. richardadewoye031@gmail.com -> Richard Adewoye)
+  if (c.patient_email && c.patient_email.includes('@')) {
+    const userPart = c.patient_email.split('@')[0];
+    const cleaned = userPart
+      .replace(/[0-9]+/g, '')
+      .replace(/[._-]+/g, ' ')
+      .trim();
+    if (cleaned.length >= 2) {
+      return cleaned
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+    return userPart.charAt(0).toUpperCase() + userPart.slice(1);
+  }
+
+  return pName || 'Patient';
+}
+
+/**
+ * Sanitizes and enriches a patient case record with real names and identifiers
+ */
+export function sanitizePatientCase(c: PatientCase): PatientCase {
+  const resolvedName = resolvePatientDisplayName(c);
+  return {
+    ...c,
+    patient_name: resolvedName,
+    contact_name: c.contact_name && c.contact_name.toLowerCase() !== 'patient' ? c.contact_name : resolvedName,
+  };
+}
+
 // ----------------------------------------------------
 // AUTHENTICATION METHODS & SESSION MANAGEMENT
 // ----------------------------------------------------
@@ -552,19 +633,50 @@ export async function registerUser(params: {
   // 5. Set active user session
   setStoredUser(profile);
 
-  // 6. Link any unassigned consultation cases for this email to the new account UID
+  // 6. Link and sync patient name for any consultation cases for this email or UID
   try {
     const casesRef = collection(db, 'cases');
     const q = query(casesRef, where('patient_email', '==', cleanEmail));
     const snap = await withTimeout(getDocs(q), 2500, null);
     if (snap && !snap.empty) {
       for (const caseDoc of snap.docs) {
-        if (caseDoc.data().user_id !== resolvedUid) {
-          try {
-            await updateDoc(doc(db, 'cases', caseDoc.id), { user_id: resolvedUid });
-          } catch {}
-        }
+        const updatePayload: Record<string, unknown> = {
+          user_id: resolvedUid,
+          patient_name: profile.fullName || caseDoc.data().patient_name,
+        };
+        try {
+          await updateDoc(doc(db, 'cases', caseDoc.id), updatePayload);
+        } catch {}
       }
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const activeStored = localStorage.getItem('hw_active_case');
+        if (activeStored) {
+          const parsed = JSON.parse(activeStored);
+          if (parsed.patient_email?.toLowerCase() === cleanEmail || parsed.user_id === resolvedUid) {
+            parsed.patient_name = profile.fullName;
+            parsed.user_id = resolvedUid;
+            localStorage.setItem('hw_active_case', JSON.stringify(parsed));
+          }
+        }
+        const allStored = localStorage.getItem('hw_all_cases');
+        if (allStored) {
+          const list: PatientCase[] = JSON.parse(allStored);
+          let changed = false;
+          list.forEach((c) => {
+            if (c.patient_email?.toLowerCase() === cleanEmail || c.user_id === resolvedUid) {
+              c.patient_name = profile.fullName;
+              c.user_id = resolvedUid;
+              changed = true;
+            }
+          });
+          if (changed) {
+            localStorage.setItem('hw_all_cases', JSON.stringify(list));
+          }
+        }
+      } catch {}
     }
   } catch (linkErr) {
     console.warn('Notice linking consultation cases during registration:', linkErr);
@@ -693,11 +805,12 @@ export async function createPatientCase(caseData: Partial<PatientCase> & { user_
   const caseNumber = caseData.case_number || `HW-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
   const now = new Date().toISOString();
   const userId = caseData.user_id || auth.currentUser?.uid || `guest_${Date.now()}`;
+  const resolvedPatientName = resolvePatientDisplayName(caseData);
 
   const fullCase: PatientCase = {
     id: caseData.id || `case_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     case_number: caseNumber,
-    patient_name: caseData.patient_name || 'Patient',
+    patient_name: resolvedPatientName,
     patient_email: caseData.patient_email || '',
     patient_phone: caseData.patient_phone || '',
     age: caseData.age || '',
@@ -745,7 +858,7 @@ export async function createPatientCase(caseData: Partial<PatientCase> & { user_
     documents: caseData.documents || [],
     treatment_updates: caseData.treatment_updates || [],
     consultation_for: caseData.consultation_for || 'Myself',
-    contact_name: caseData.contact_name || caseData.patient_name || '',
+    contact_name: caseData.contact_name || resolvedPatientName,
     user_id: userId,
   };
 
@@ -828,13 +941,13 @@ export async function getCaseById(caseId: string): Promise<PatientCase | null> {
       const stored = localStorage.getItem('hw_active_case');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.id === caseId) return parsed;
+        if (parsed.id === caseId) return sanitizePatientCase(parsed);
       }
       const casesRaw = localStorage.getItem('hw_all_cases');
       if (casesRaw) {
         const allCases: PatientCase[] = JSON.parse(casesRaw);
         const found = allCases.find((c) => c.id === caseId);
-        if (found) return found;
+        if (found) return sanitizePatientCase(found);
       }
     } catch {}
   }
@@ -843,7 +956,7 @@ export async function getCaseById(caseId: string): Promise<PatientCase | null> {
     const caseRef = doc(db, 'cases', caseId);
     const snap = await withTimeout(getDoc(caseRef), 2500, null);
     if (snap && snap.exists()) {
-      return formatDoc<PatientCase>(snap);
+      return sanitizePatientCase(formatDoc<PatientCase>(snap));
     }
   } catch (err) {
     console.warn('Error fetching case by ID from Firestore:', err);
@@ -867,13 +980,13 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
         const q = query(casesRef, where('user_id', '==', effectiveUid), orderBy('created_at', 'desc'), limit(1));
         const snapshot = await withTimeout(getDocs(q), 2500, null);
         if (snapshot && !snapshot.empty) {
-          return formatDoc<PatientCase>(snapshot.docs[0]);
+          return sanitizePatientCase(formatDoc<PatientCase>(snapshot.docs[0]));
         }
       } catch {
         const qFallback = query(casesRef, where('user_id', '==', effectiveUid));
         const snapshot = await withTimeout(getDocs(qFallback), 2500, null);
         if (snapshot && !snapshot.empty) {
-          return formatDoc<PatientCase>(snapshot.docs[0]);
+          return sanitizePatientCase(formatDoc<PatientCase>(snapshot.docs[0]));
         }
       }
     }
@@ -882,7 +995,7 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
       const qEmail = query(casesRef, where('patient_email', '==', effectiveEmail), limit(1));
       const snapshot = await withTimeout(getDocs(qEmail), 2500, null);
       if (snapshot && !snapshot.empty) {
-        const found = formatDoc<PatientCase>(snapshot.docs[0]);
+        const found = sanitizePatientCase(formatDoc<PatientCase>(snapshot.docs[0]));
         if (effectiveUid && found.user_id !== effectiveUid) {
           try {
             await withTimeout(updateDoc(doc(db, 'cases', found.id), { user_id: effectiveUid }), 1500, undefined);
@@ -904,7 +1017,7 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
         const matchesUid = effectiveUid && parsed.user_id === effectiveUid;
         const matchesEmail = effectiveEmail && parsed.patient_email?.toLowerCase() === effectiveEmail.toLowerCase();
         if (matchesUid || matchesEmail) {
-          return parsed;
+          return sanitizePatientCase(parsed);
         }
       }
 
@@ -914,11 +1027,11 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
         const allCases: PatientCase[] = JSON.parse(allCasesRaw);
         if (effectiveEmail) {
           const match = allCases.find((c) => c.patient_email?.toLowerCase() === effectiveEmail.toLowerCase());
-          if (match) return match;
+          if (match) return sanitizePatientCase(match);
         }
         if (effectiveUid) {
           const match = allCases.find((c) => c.user_id === effectiveUid);
-          if (match) return match;
+          if (match) return sanitizePatientCase(match);
         }
       }
     } catch {}
@@ -950,7 +1063,7 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
         const snapshot = await withTimeout(getDocs(q), 3000, null);
         if (snapshot && !snapshot.empty) {
           snapshot.docs.forEach((d) => {
-            casesMap.set(d.id, formatDoc<PatientCase>(d));
+            casesMap.set(d.id, sanitizePatientCase(formatDoc<PatientCase>(d)));
           });
         }
       } catch (err) {
@@ -964,7 +1077,7 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
         const snapshot = await withTimeout(getDocs(qEmail), 3000, null);
         if (snapshot && !snapshot.empty) {
           snapshot.docs.forEach((d) => {
-            casesMap.set(d.id, formatDoc<PatientCase>(d));
+            casesMap.set(d.id, sanitizePatientCase(formatDoc<PatientCase>(d)));
           });
         }
       } catch (err) {
@@ -985,7 +1098,7 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
   if (typeof window !== 'undefined') {
     try {
       const active = await getUserActiveCase(effectiveUid, cleanEmail);
-      if (active) return [active];
+      if (active) return [sanitizePatientCase(active)];
     } catch {}
   }
 
@@ -1002,7 +1115,7 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
     if (snapshot && !snapshot.empty) {
       const cases: PatientCase[] = [];
       snapshot.forEach((d) => {
-        cases.push(formatDoc<PatientCase>(d));
+        cases.push(sanitizePatientCase(formatDoc<PatientCase>(d)));
       });
       // Sort descending by created_at
       return cases.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1017,11 +1130,11 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
       const casesRaw = localStorage.getItem('hw_all_cases');
       if (casesRaw) {
         const parsed: PatientCase[] = JSON.parse(casesRaw);
-        return parsed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return parsed.map(sanitizePatientCase).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       }
       const activeRaw = localStorage.getItem('hw_active_case');
       if (activeRaw) {
-        return [JSON.parse(activeRaw)];
+        return [sanitizePatientCase(JSON.parse(activeRaw))];
       }
     } catch {}
   }
@@ -1269,7 +1382,7 @@ export function subscribeToAllCasesForAdmin(
         if (!snapshot.empty) {
           const list: PatientCase[] = [];
           snapshot.forEach((d) => {
-            list.push(formatDoc<PatientCase>(d));
+            list.push(sanitizePatientCase(formatDoc<PatientCase>(d)));
           });
           list.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
@@ -2228,7 +2341,7 @@ export async function getAdminConversations(): Promise<
 
   return cases.map((c, idx) => {
     const caseMeta = meta[c.id] || meta[c.case_number];
-    const initialName = c.patient_name || 'Patient';
+    const initialName = resolvePatientDisplayName(c);
     const firstLetter = initialName.charAt(0).toUpperCase() || 'P';
 
     return {
