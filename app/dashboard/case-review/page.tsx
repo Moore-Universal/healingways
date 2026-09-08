@@ -14,12 +14,15 @@ import {
 import { auth } from '@/app/lib/firebase/client';
 import { 
   getUserActiveCase, 
+  subscribeToUserActiveCase,
   patientAcceptCaseReview,
   patientDeclineCaseReview,
   getStoredUser,
+  checkStepAccess,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function PatientCaseReviewPage() {
   const [caseDetails, setCaseDetails] = useState<PatientCase | null>(null);
@@ -59,37 +62,29 @@ export default function PatientCaseReviewPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
-        setCaseDetails(c);
-        
-        const { checkStepAccess } = await import('@/app/lib/firebase/services');
-        const access = checkStepAccess(2, c);
-        if (!access.allowed) {
-          setAccessReason(access.reason || 'This step is locked.');
-        }
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-        if (c?.review_accepted) {
-          setConfirmedCheck(true);
-        }
-      } catch (err) {
-        console.error('Error fetching case:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    const unsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      setCaseDetails(c);
+      const access = checkStepAccess(2, c);
+      if (!access.allowed) {
+        setAccessReason(access.reason || 'This step is locked.');
+      } else {
+        setAccessReason(null);
       }
-    }
+      if (c?.review_accepted) {
+        setConfirmedCheck(true);
+      }
+      setLoading(false);
+    });
 
-    init();
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -219,8 +214,17 @@ export default function PatientCaseReviewPage() {
                 Medical Evaluation &amp; Treatment Assessment
               </h4>
               {reviewAvailable ? (
-                <div className="p-4 sm:p-5 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed whitespace-pre-line border border-slate-100">
-                  {caseDetails?.review_text}
+                <div className="space-y-3">
+                  <div className="p-4 sm:p-5 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed whitespace-pre-line border border-slate-100">
+                    {caseDetails?.review_text}
+                  </div>
+                  {/* Supplementary Documents for Case Review */}
+                  <PatientStageDocuments
+                    caseRecord={caseDetails}
+                    stage="Case Review"
+                    title="Supplementary Clinical Documents"
+                    description="Official evaluations, reports, and specialist opinions attached by your care coordinator to supplement this review."
+                  />
                 </div>
               ) : (
                 <div className="p-8 text-center bg-slate-50/70 border border-dashed border-slate-200 rounded-xl space-y-2">

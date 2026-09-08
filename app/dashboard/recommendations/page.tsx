@@ -17,14 +17,17 @@ import {
 import { auth } from '@/app/lib/firebase/client';
 import { 
   getUserActiveCase, 
+  subscribeToUserActiveCase,
   patientSelectHospital,
   patientDeclineHospitals,
   getStoredUser,
+  checkStepAccess,
   DEFAULT_HOSPITALS,
   Hospital,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function RecommendationsPage() {
   const [loading, setLoading] = useState(true);
@@ -76,47 +79,42 @@ export default function RecommendationsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
-        if (c) {
-          setActiveCase(c);
-          setSelectedHospitalId(c.selected_hospital_id || null);
-          const recList = (c.recommended_hospitals && c.recommended_hospitals.length > 0)
-            ? c.recommended_hospitals
-            : DEFAULT_HOSPITALS;
-          setHospitals(recList);
-          
-          const { checkStepAccess } = await import('@/app/lib/firebase/services');
-          const access = checkStepAccess(3, c);
-          if (!access.allowed) {
-            setAccessReason(access.reason || 'This step is locked.');
-          }
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
+
+    const unsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      if (c) {
+        setActiveCase(c);
+        setSelectedHospitalId(c.selected_hospital_id || null);
+        const recList = (c.recommended_hospitals && c.recommended_hospitals.length > 0)
+          ? c.recommended_hospitals
+          : DEFAULT_HOSPITALS;
+        setHospitals(recList);
+        
+        const access = checkStepAccess(3, c);
+        if (!access.allowed) {
+          setAccessReason(access.reason || 'This step is locked.');
         } else {
-          setHospitals(DEFAULT_HOSPITALS);
-          const { checkStepAccess } = await import('@/app/lib/firebase/services');
-          const access = checkStepAccess(3, null);
-          if (!access.allowed) {
-            setAccessReason(access.reason || 'This step is locked.');
-          }
+          setAccessReason(null);
         }
-      } catch (err) {
-        console.error('Error loading recommendations:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+      } else {
+        setHospitals(DEFAULT_HOSPITALS);
+        const access = checkStepAccess(3, null);
+        if (!access.allowed) {
+          setAccessReason(access.reason || 'This step is locked.');
+        } else {
+          setAccessReason(null);
         }
       }
-    }
+      setLoading(false);
+    });
 
-    init();
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -328,6 +326,14 @@ export default function RecommendationsPage() {
                   );
                 })}
               </div>
+
+              {/* Supplementary Documents for Hospital Recommendations */}
+              <PatientStageDocuments
+                caseRecord={activeCase}
+                stage="Hospital Recommendation"
+                title="Hospital Quotes & Credential Documents"
+                description="Official hospital brochures, treatment cost breakdowns, and specialist credentials provided by your care team."
+              />
 
               {!hasHospitalSelected && (
                 <div className="mt-8 border-t border-slate-200 pt-6 max-w-2xl mx-auto">

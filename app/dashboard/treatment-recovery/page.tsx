@@ -11,13 +11,15 @@ import {
 } from 'lucide-react';
 import { auth } from '@/app/lib/firebase/client';
 import { 
-  getUserActiveCase, 
+  subscribeToUserActiveCase,
   getTreatmentUpdatesForCase,
   getStoredUser,
+  checkStepAccess,
   TreatmentUpdate,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function TreatmentRecoveryPage() {
   const [loading, setLoading] = useState(true);
@@ -27,18 +29,18 @@ export default function TreatmentRecoveryPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function loadData() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-        if (c) {
-          setActiveCase(c);
+    const unsubscribe = subscribeToUserActiveCase(uid, email, async (c) => {
+      if (!isMounted) return;
+      if (c) {
+        setActiveCase(c);
+        try {
           const upds = await getTreatmentUpdatesForCase(c.id);
+          if (!isMounted) return;
           if (upds.length > 0) {
             setUpdates(upds);
           } else if (c.treatment_updates && c.treatment_updates.length > 0) {
@@ -46,33 +48,32 @@ export default function TreatmentRecoveryPage() {
           } else {
             setUpdates([]);
           }
-          
-          const { checkStepAccess } = await import('@/app/lib/firebase/services');
-          const access = checkStepAccess(7, c);
-          if (!access.allowed) {
-            setAccessReason(access.reason || 'This step is locked.');
-          }
-        } else {
-          setActiveCase(null);
-          setUpdates([]);
-          const { checkStepAccess } = await import('@/app/lib/firebase/services');
-          const access = checkStepAccess(7, null);
-          if (!access.allowed) {
-            setAccessReason(access.reason || 'This step is locked.');
-          }
+        } catch {
+          if (c.treatment_updates) setUpdates(c.treatment_updates);
         }
-      } catch (err) {
-        console.error('Error loading treatment recovery updates:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+        
+        const access = checkStepAccess(7, c);
+        if (!access.allowed) {
+          setAccessReason(access.reason || 'This step is locked.');
+        } else {
+          setAccessReason(null);
+        }
+      } else {
+        setActiveCase(null);
+        setUpdates([]);
+        const access = checkStepAccess(7, null);
+        if (!access.allowed) {
+          setAccessReason(access.reason || 'This step is locked.');
+        } else {
+          setAccessReason(null);
         }
       }
-    }
+      setLoading(false);
+    });
 
-    loadData();
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -189,6 +190,14 @@ export default function TreatmentRecoveryPage() {
                 ))}
               </div>
             )}
+
+            {/* Supplementary Documents for Treatment & Recovery */}
+            <PatientStageDocuments
+              caseRecord={activeCase}
+              stage="Treatment & Recovery"
+              title="Treatment & Discharge Documents"
+              description="Official discharge summaries, recovery instructions, prescriptions, and specialist follow-up notes."
+            />
           </div>
 
         </div>

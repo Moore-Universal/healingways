@@ -17,12 +17,15 @@ import {
 import { auth } from '@/app/lib/firebase/client';
 import { 
   getUserActiveCase, 
+  subscribeToUserActiveCase,
   patientConfirmTravel,
   patientDeclineTravel,
   getStoredUser,
+  checkStepAccess,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function TravelPreparationPage() {
   const [loading, setLoading] = useState(true);
@@ -65,33 +68,26 @@ export default function TravelPreparationPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
-        setActiveCase(c);
-        
-        const { checkStepAccess } = await import('@/app/lib/firebase/services');
-        const access = checkStepAccess(6, c);
-        if (!access.allowed) {
-          setAccessReason(access.reason || 'This step is locked.');
-        }
-      } catch (err) {
-        console.error('Error initializing travel preparation:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-    init();
+    const unsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      setActiveCase(c);
+      const access = checkStepAccess(6, c);
+      if (!access.allowed) {
+        setAccessReason(access.reason || 'This step is locked.');
+      } else {
+        setAccessReason(null);
+      }
+      setLoading(false);
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -210,6 +206,14 @@ Ground Transfer: Private climate-controlled medical van from Chennai Airport dir
               <div className="p-5 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
                 {flightText}
               </div>
+
+              {/* Supplementary Documents for Travel Preparation */}
+              <PatientStageDocuments
+                caseRecord={activeCase}
+                stage="Travel Preparation"
+                title="Flight Tickets & Logistics Documents"
+                description="E-tickets, boarding guides, airport pickup vouchers, and fit-to-fly forms provided by your coordinator."
+              />
 
               {isTravelConfirmed ? (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

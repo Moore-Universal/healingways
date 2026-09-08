@@ -20,6 +20,22 @@ import {
 } from 'firebase/auth';
 import { auth, db } from './client';
 
+// Cross-tab real-time sync channel to guarantee instant communication without page refresh
+let globalSyncChannel: BroadcastChannel | null = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    globalSyncChannel = new BroadcastChannel('hw_realtime_sync');
+  } catch {}
+}
+
+export function broadcastSyncEvent(payload: { type: string; [key: string]: unknown }) {
+  if (globalSyncChannel) {
+    try {
+      globalSyncChannel.postMessage(payload);
+    } catch {}
+  }
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -69,6 +85,10 @@ export interface CaseDocument {
   fileType?: string;
   fileUrl?: string;
   category?: string;
+  stage?: string;
+  uploadedBy?: 'admin' | 'patient';
+  uploadedByName?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -582,6 +602,7 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem('hw_consultation_completed');
     localStorage.removeItem('hw_consultation_completed_case_id');
     localStorage.removeItem('hw_active_case_id');
+    localStorage.removeItem('hw_active_case');
     localStorage.removeItem('hw_user_fullname');
 
     // Clear user tokens & profile keys
@@ -595,16 +616,11 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem('hw_admin_auth');
 
     // Clear draft credentials and notification state
-    sessionStorage.removeItem('hw_login_draft_email');
-    sessionStorage.removeItem('hw_login_draft_password');
-    sessionStorage.removeItem('hw_login_not_found_user');
-    sessionStorage.removeItem('hw_login_error_msg');
-    sessionStorage.removeItem('hw_signup_draft_fullname');
-    sessionStorage.removeItem('hw_signup_draft_email');
-    sessionStorage.removeItem('hw_signup_draft_password');
-    sessionStorage.removeItem('hw_signup_draft_confirm_password');
-    sessionStorage.removeItem('hw_signup_error_msg');
+    try {
+      sessionStorage.clear();
+    } catch {}
 
+    broadcastSyncEvent({ type: 'auth_logout' });
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('hw_auth_changed', { detail: null }));
   }
@@ -732,6 +748,7 @@ export async function updatePatientCase(caseId: string, updates: Partial<Patient
       }
       window.dispatchEvent(new CustomEvent('hw_case_updated', { detail: { id: caseId, ...updates } }));
       window.dispatchEvent(new Event('storage'));
+      broadcastSyncEvent({ type: 'case_updated', caseId, updates });
     } catch {}
   }
 
@@ -999,8 +1016,8 @@ export function subscribeToCase(
     }
   });
 
-  // 3. Same-window / local storage listener
-  const handleLocalUpdate = (e: Event) => {
+  // 3. Same-window / local storage / broadcast listener
+  const handleLocalUpdate = (e?: Event) => {
     if (isUnsubscribed) return;
     const detail = (e as CustomEvent)?.detail;
     if (!detail || detail.id === caseId || detail.case_number === caseId) {
@@ -1010,9 +1027,19 @@ export function subscribeToCase(
     }
   };
 
+  const handleBroadcast = (evt: MessageEvent) => {
+    if (isUnsubscribed) return;
+    if (evt.data?.type === 'case_updated' && (!evt.data.caseId || evt.data.caseId === caseId)) {
+      handleLocalUpdate();
+    }
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('hw_case_updated', handleLocalUpdate);
     window.addEventListener('storage', handleLocalUpdate);
+    if (globalSyncChannel) {
+      globalSyncChannel.addEventListener('message', handleBroadcast);
+    }
   }
 
   // 4. Firestore onSnapshot real-time listener
@@ -1047,6 +1074,9 @@ export function subscribeToCase(
     if (typeof window !== 'undefined') {
       window.removeEventListener('hw_case_updated', handleLocalUpdate);
       window.removeEventListener('storage', handleLocalUpdate);
+      if (globalSyncChannel) {
+        globalSyncChannel.removeEventListener('message', handleBroadcast);
+      }
     }
   };
 }
@@ -1070,7 +1100,7 @@ export function subscribeToUserActiveCase(
     }
   });
 
-  // 2. Local window event listener
+  // 2. Local window & broadcast event listener
   const handleLocalUpdate = () => {
     if (isUnsubscribed) return;
     getUserActiveCase(effectiveUid, effectiveEmail).then((updated) => {
@@ -1078,9 +1108,19 @@ export function subscribeToUserActiveCase(
     });
   };
 
+  const handleBroadcast = (evt: MessageEvent) => {
+    if (isUnsubscribed) return;
+    if (evt.data?.type === 'case_updated') {
+      handleLocalUpdate();
+    }
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('hw_case_updated', handleLocalUpdate);
     window.addEventListener('storage', handleLocalUpdate);
+    if (globalSyncChannel) {
+      globalSyncChannel.addEventListener('message', handleBroadcast);
+    }
   }
 
   // 3. Firestore real-time queries
@@ -1131,6 +1171,9 @@ export function subscribeToUserActiveCase(
     if (typeof window !== 'undefined') {
       window.removeEventListener('hw_case_updated', handleLocalUpdate);
       window.removeEventListener('storage', handleLocalUpdate);
+      if (globalSyncChannel) {
+        globalSyncChannel.removeEventListener('message', handleBroadcast);
+      }
     }
   };
 }
@@ -1155,9 +1198,19 @@ export function subscribeToAllCasesForAdmin(
     });
   };
 
+  const handleBroadcast = (evt: MessageEvent) => {
+    if (isUnsubscribed) return;
+    if (evt.data?.type === 'case_updated') {
+      handleLocalUpdate();
+    }
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('hw_case_updated', handleLocalUpdate);
     window.addEventListener('storage', handleLocalUpdate);
+    if (globalSyncChannel) {
+      globalSyncChannel.addEventListener('message', handleBroadcast);
+    }
   }
 
   let firestoreUnsubscribe: (() => void) | null = null;
@@ -1196,6 +1249,9 @@ export function subscribeToAllCasesForAdmin(
     if (typeof window !== 'undefined') {
       window.removeEventListener('hw_case_updated', handleLocalUpdate);
       window.removeEventListener('storage', handleLocalUpdate);
+      if (globalSyncChannel) {
+        globalSyncChannel.removeEventListener('message', handleBroadcast);
+      }
     }
   };
 }
@@ -1733,10 +1789,14 @@ export async function saveCaseDocument(docData: Omit<CaseDocument, 'id' | 'creat
     caseId: docData.caseId,
     userId: docData.userId,
     name: docData.name,
-    fileSize: docData.fileSize,
-    fileType: docData.fileType,
+    fileSize: docData.fileSize || '1.2 MB',
+    fileType: docData.fileType || 'application/pdf',
     fileUrl: docData.fileUrl || '',
     category: docData.category || 'Medical Record',
+    stage: docData.stage,
+    uploadedBy: docData.uploadedBy || 'admin',
+    uploadedByName: docData.uploadedByName,
+    notes: docData.notes,
     createdAt: now,
   };
 
@@ -1752,8 +1812,10 @@ export async function saveCaseDocument(docData: Omit<CaseDocument, 'id' | 'creat
     const currentCase = await getCaseById(docData.caseId);
     if (currentCase) {
       const existing = currentCase.documents || [];
+      const updatedDocs = [fullDoc, ...existing.filter((d) => d.id !== docId)];
       await updatePatientCase(docData.caseId, {
-        documents: [fullDoc, ...existing],
+        documents: updatedDocs,
+        documents_submitted: updatedDocs.length,
       });
     }
   } catch (err) {
@@ -1761,6 +1823,32 @@ export async function saveCaseDocument(docData: Omit<CaseDocument, 'id' | 'creat
   }
 
   return fullDoc;
+}
+
+/**
+ * Removes an attached document from Firestore and the case record
+ */
+export async function deleteCaseDocument(caseId: string, docId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'documents', docId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting document from Firestore:', err);
+  }
+
+  try {
+    const currentCase = await getCaseById(caseId);
+    if (currentCase) {
+      const existing = currentCase.documents || [];
+      const updatedDocs = existing.filter((d) => d.id !== docId);
+      await updatePatientCase(caseId, {
+        documents: updatedDocs,
+        documents_submitted: updatedDocs.length,
+      });
+    }
+  } catch (err) {
+    console.error('Error removing document from case record:', err);
+  }
 }
 
 // ----------------------------------------------------
@@ -1885,8 +1973,10 @@ export async function sendChatMessage(params: {
       }
       localStorage.setItem('hw_conversations_meta', JSON.stringify(summaries));
 
-      // Dispatch event for instant reactive updates across components in the same tab
+      // Dispatch event for instant reactive updates across components in the same tab and other tabs
       window.dispatchEvent(new CustomEvent('hw_new_chat_message', { detail: message }));
+      window.dispatchEvent(new Event('storage'));
+      broadcastSyncEvent({ type: 'new_chat_message', message, caseId: params.caseId, altCaseId: params.altCaseId });
     } catch (e) {
       console.warn('Notice updating local chat cache:', e);
     }
@@ -1957,11 +2047,11 @@ export function subscribeToCaseMessages(
     onUpdate([initialWelcome]);
   }
 
-  // Same-window instant sync listener
-  const handleLocalEvent = (e: Event) => {
+  // Same-window and cross-tab instant sync listener
+  const handleLocalEvent = (e?: Event) => {
     if (isUnsubscribed) return;
-    const detail = (e as CustomEvent<ChatMessage>).detail;
-    if (detail && targetKeys.includes(detail.caseId)) {
+    const detail = (e as CustomEvent<ChatMessage>)?.detail;
+    if (!detail || targetKeys.includes(detail.caseId)) {
       const current = getCachedMessages();
       if (current.length > 0) {
         onUpdate(current);
@@ -1969,8 +2059,30 @@ export function subscribeToCaseMessages(
     }
   };
 
+  const handleBroadcastMessage = (event: MessageEvent) => {
+    if (isUnsubscribed) return;
+    if (event.data?.type === 'new_chat_message') {
+      const msg = event.data.message as ChatMessage;
+      if (
+        !msg ||
+        targetKeys.includes(msg.caseId) ||
+        targetKeys.includes(event.data?.caseId) ||
+        targetKeys.includes(event.data?.altCaseId)
+      ) {
+        const current = getCachedMessages();
+        if (current.length > 0) {
+          onUpdate(current);
+        }
+      }
+    }
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('hw_new_chat_message', handleLocalEvent);
+    window.addEventListener('storage', handleLocalEvent);
+    if (globalSyncChannel) {
+      globalSyncChannel.addEventListener('message', handleBroadcastMessage);
+    }
   }
 
   // Firestore real-time listener
@@ -2029,6 +2141,10 @@ export function subscribeToCaseMessages(
     if (firestoreUnsubscribe) firestoreUnsubscribe();
     if (typeof window !== 'undefined') {
       window.removeEventListener('hw_new_chat_message', handleLocalEvent);
+      window.removeEventListener('storage', handleLocalEvent);
+      if (globalSyncChannel) {
+        globalSyncChannel.removeEventListener('message', handleBroadcastMessage);
+      }
     }
   };
 }
@@ -2115,10 +2231,20 @@ export function subscribeToAdminConversations(
     if (!isUnsubscribed) refreshList();
   };
 
+  const handleBroadcast = (evt: MessageEvent) => {
+    if (isUnsubscribed) return;
+    if (evt.data?.type === 'new_chat_message' || evt.data?.type === 'case_updated') {
+      refreshList();
+    }
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('hw_new_chat_message', handleLocalEvent);
     window.addEventListener('hw_case_updated', handleLocalEvent);
     window.addEventListener('storage', handleLocalEvent);
+    if (globalSyncChannel) {
+      globalSyncChannel.addEventListener('message', handleBroadcast);
+    }
   }
 
   const unsubs: Array<() => void> = [];
@@ -2143,6 +2269,9 @@ export function subscribeToAdminConversations(
       window.removeEventListener('hw_new_chat_message', handleLocalEvent);
       window.removeEventListener('hw_case_updated', handleLocalEvent);
       window.removeEventListener('storage', handleLocalEvent);
+      if (globalSyncChannel) {
+        globalSyncChannel.removeEventListener('message', handleBroadcast);
+      }
     }
   };
 }

@@ -15,6 +15,7 @@ import {
   PatientCase, 
   adminSetTravelDetails 
 } from '@/app/lib/firebase/services';
+import StageDocumentAttachment from './StageDocumentAttachment';
 
 interface AdminTravelPreparationProps {
   caseRecord: PatientCase;
@@ -212,6 +213,16 @@ export default function AdminTravelPreparation({
           className="w-full p-4 text-xs sm:text-sm font-mono bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all resize-y shadow-2xs leading-relaxed"
         />
       </div>
+
+      {/* Supplementary Documents for Travel Preparation */}
+      <StageDocumentAttachment
+        caseRecord={caseRecord}
+        stage="Travel Preparation"
+        title="Travel & Flight Documents"
+        description="Attach flight e-tickets, airport transfer vouchers, medical escort passes, or fit-to-fly clearance forms."
+        onUpdateCase={onUpdateCase}
+        showToast={showToast}
+      />
 
       {/* Footer Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">

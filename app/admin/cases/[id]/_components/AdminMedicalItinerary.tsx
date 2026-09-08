@@ -16,6 +16,7 @@ import {
   PatientCase, 
   adminSetMedicalItinerary 
 } from '@/app/lib/firebase/services';
+import StageDocumentAttachment from './StageDocumentAttachment';
 
 interface AdminMedicalItineraryProps {
   caseRecord: PatientCase;
@@ -247,6 +248,16 @@ export default function AdminMedicalItinerary({
           className="w-full p-4 text-xs sm:text-sm font-mono bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-y shadow-2xs leading-relaxed"
         />
       </div>
+
+      {/* Supplementary Documents for Medical Itinerary */}
+      <StageDocumentAttachment
+        caseRecord={caseRecord}
+        stage="Medical Itinerary"
+        title="Medical Itinerary Documents"
+        description="Attach detailed itinerary PDFs, hospital admission checklists, pre-op clinical instructions, or appointment passes to supplement the itinerary text."
+        onUpdateCase={onUpdateCase}
+        showToast={showToast}
+      />
 
       {/* Footer Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">

@@ -17,12 +17,15 @@ import {
 import { auth } from '@/app/lib/firebase/client';
 import { 
   getUserActiveCase, 
+  subscribeToUserActiveCase,
   patientConfirmAccommodationAndVisa,
   patientDeclineAccommodationAndVisa,
   getStoredUser,
+  checkStepAccess,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function AccommodationPage() {
   const [loading, setLoading] = useState(true);
@@ -58,33 +61,26 @@ export default function AccommodationPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
-        setActiveCase(c);
-        
-        const { checkStepAccess } = await import('@/app/lib/firebase/services');
-        const access = checkStepAccess(5, c);
-        if (!access.allowed) {
-          setAccessReason(access.reason || 'This step is locked.');
-        }
-      } catch (err) {
-        console.error('Error loading accommodation & visa details:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-    init();
+    const unsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      setActiveCase(c);
+      const access = checkStepAccess(5, c);
+      if (!access.allowed) {
+        setAccessReason(access.reason || 'This step is locked.');
+      } else {
+        setAccessReason(null);
+      }
+      setLoading(false);
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -235,6 +231,16 @@ Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 h
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-xl border border-blue-100">
               <ShieldCheck className="w-4 h-4" /> Hospital visa reference code verified
             </div>
+          </div>
+
+          {/* Supplementary Documents for Accommodation & Visa */}
+          <div className="md:col-span-2">
+            <PatientStageDocuments
+              caseRecord={activeCase}
+              stage="Accommodation & Visa"
+              title="Accommodation & Visa Documents"
+              description="Official visa invitation letters, hotel booking vouchers, and consular guides provided by your care coordinator."
+            />
           </div>
 
           {/* Bottom Confirmation Banner */}

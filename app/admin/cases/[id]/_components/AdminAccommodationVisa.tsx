@@ -21,6 +21,7 @@ import {
   getAccommodations,
   Accommodation
 } from '@/app/lib/firebase/services';
+import StageDocumentAttachment from './StageDocumentAttachment';
 
 interface AdminAccommodationVisaProps {
   caseRecord: PatientCase;
@@ -283,6 +284,16 @@ export default function AdminAccommodationVisa({
           />
         </div>
       </div>
+
+      {/* Supplementary Documents for Accommodation & Visa */}
+      <StageDocumentAttachment
+        caseRecord={caseRecord}
+        stage="Accommodation & Visa"
+        title="Visa & Accommodation Documents"
+        description="Attach medical visa support/invitation letters, verified hotel booking confirmations, or consulate clearance certificates."
+        onUpdateCase={onUpdateCase}
+        showToast={showToast}
+      />
 
       {/* Footer Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">

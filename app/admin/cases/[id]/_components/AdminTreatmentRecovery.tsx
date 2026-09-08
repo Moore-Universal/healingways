@@ -21,6 +21,7 @@ import {
   getTreatmentUpdatesForCase,
   updatePatientCase 
 } from '@/app/lib/firebase/services';
+import StageDocumentAttachment from './StageDocumentAttachment';
 
 interface AdminTreatmentRecoveryProps {
   caseRecord: PatientCase;
@@ -361,6 +362,16 @@ export default function AdminTreatmentRecovery({
           </div>
         )}
       </div>
+
+      {/* Supplementary Documents for Treatment & Recovery */}
+      <StageDocumentAttachment
+        caseRecord={caseRecord}
+        stage="Treatment & Recovery"
+        title="Treatment & Recovery Documents"
+        description="Attach clinical discharge summaries, post-operative care plans, specialist prescriptions, or follow-up laboratory results."
+        onUpdateCase={onUpdateCase}
+        showToast={showToast}
+      />
 
       {/* Complete Journey Action */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">

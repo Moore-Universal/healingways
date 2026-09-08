@@ -21,6 +21,7 @@ import {
   getHospitals,
   adminSetRecommendedHospitals 
 } from '@/app/lib/firebase/services';
+import StageDocumentAttachment from './StageDocumentAttachment';
 
 interface AdminHospitalRecommendationsProps {
   caseRecord: PatientCase;
@@ -295,6 +296,16 @@ export default function AdminHospitalRecommendations({
           })}
         </div>
       </div>
+
+      {/* Supplementary Documents for Hospital Recommendations */}
+      <StageDocumentAttachment
+        caseRecord={caseRecord}
+        stage="Hospital Recommendation"
+        title="Hospital Recommendation Documents"
+        description="Attach official hospital cost quotes, treatment brochures, surgeon credentials, or accreditation certificates to supplement your recommendations."
+        onUpdateCase={onUpdateCase}
+        showToast={showToast}
+      />
 
       {/* Action Footer */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">

@@ -15,12 +15,15 @@ import {
 import { auth } from '@/app/lib/firebase/client';
 import { 
   getUserActiveCase, 
+  subscribeToUserActiveCase,
   patientConfirmMedicalItinerary,
   patientDeclineMedicalItinerary,
   getStoredUser,
+  checkStepAccess,
   PatientCase 
 } from '@/app/lib/firebase/services';
 import HealthcareStepper from '../_components/HealthcareStepper';
+import PatientStageDocuments from '../_components/PatientStageDocuments';
 
 export default function MedicalItineraryPage() {
   const [loading, setLoading] = useState(true);
@@ -56,33 +59,26 @@ export default function MedicalItineraryPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
-        if (!isMounted) return;
-        setActiveCase(c);
-        
-        const { checkStepAccess } = await import('@/app/lib/firebase/services');
-        const access = checkStepAccess(4, c);
-        if (!access.allowed) {
-          setAccessReason(access.reason || 'This step is locked.');
-        }
-      } catch (err) {
-        console.error('Error loading medical itinerary:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-    init();
+    const unsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      setActiveCase(c);
+      const access = checkStepAccess(4, c);
+      if (!access.allowed) {
+        setAccessReason(access.reason || 'This step is locked.');
+      } else {
+        setAccessReason(null);
+      }
+      setLoading(false);
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -220,6 +216,14 @@ Day 12: Fit-to-Fly Certification & Airport Departure Transfer.`;
               <div className="p-5 bg-slate-50 rounded-xl text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
                 {itineraryText}
               </div>
+
+              {/* Supplementary Documents for Medical Itinerary */}
+              <PatientStageDocuments
+                caseRecord={activeCase}
+                stage="Medical Itinerary"
+                title="Itinerary & Pre-Op Documents"
+                description="Detailed schedule PDFs, hospital admission passes, and pre-op clinical instructions provided by your care coordinator."
+              />
             </div>
 
             {/* Confirmation Area */}
