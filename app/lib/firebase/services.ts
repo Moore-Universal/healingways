@@ -53,10 +53,10 @@ export interface UserProfile {
 export interface Hospital {
   id: string;
   name: string;
-  location: string;
+  location?: string;
   country?: string;
-  specialties: string[];
-  description: string;
+  specialties?: string[];
+  description?: string;
   rating?: number;
   accreditation?: string;
   estimatedCost?: string;
@@ -156,6 +156,7 @@ export interface PatientCase {
   hospital_accepted?: boolean;
   hospital_declined?: boolean;
   hospital_decline_reason?: string;
+  recommendation_notes?: string | null;
   recommended_hospitals?: Hospital[];
   itinerary_notes?: string | null;
   itinerary_sent_to_patient?: boolean;
@@ -197,16 +198,16 @@ export interface PatientCase {
 }
 
 // ----------------------------------------------------
-// DEFAULT SEED HOSPITALS
+// HOSPITAL CATALOGUE / LISTINGS
 // ----------------------------------------------------
 export const DEFAULT_HOSPITALS: Hospital[] = [
   {
     id: 'hosp-1',
-    name: 'Apollo Hospital International',
+    name: 'Apollo Hospitals International',
     location: 'Chennai, India',
     country: 'India',
     specialties: ['Orthopedic Surgery', 'Cardiology', 'Oncology', 'Joint Replacement'],
-    description: 'JCI Accredited multi-specialty center renowned for robotic knee and hip joint replacements with 99.4% clinical success rate.',
+    description: 'JCI Accredited multi-specialty center renowned for robotic knee and hip joint replacements with high clinical success rates.',
     rating: 4.9,
     accreditation: 'JCI & NABH Accredited',
     estimatedCost: '$6,500 - $8,200',
@@ -217,7 +218,7 @@ export const DEFAULT_HOSPITALS: Hospital[] = [
     location: 'Bangkok, Thailand',
     country: 'Thailand',
     specialties: ['Spine Surgery', 'Robotic Surgery', 'Executive Wellness', 'Neurology'],
-    description: 'World-leading medical tourism center offering cutting-edge minimally invasive procedures, dedicated multilingual international coordinators, and 5-star patient suites.',
+    description: 'World-leading medical tourism center offering cutting-edge minimally invasive procedures and dedicated multilingual international coordinators.',
     rating: 4.9,
     accreditation: 'JCI & GHA Certified',
     estimatedCost: '$8,800 - $11,500',
@@ -243,6 +244,28 @@ export const DEFAULT_HOSPITALS: Hospital[] = [
     rating: 4.9,
     accreditation: 'JCI Accredited',
     estimatedCost: '$12,000 - $16,000',
+  },
+  {
+    id: 'hosp-5',
+    name: 'Fortis Memorial Research Institute',
+    location: 'Gurugram, India',
+    country: 'India',
+    specialties: ['Robotic Surgery', 'Neurology', 'Organ Transplant', 'Pediatric Cardiology'],
+    description: 'Advanced multi-super specialty quaternary care hospital with international patient suites and comprehensive surgical programs.',
+    rating: 4.8,
+    accreditation: 'JCI & NABH Accredited',
+    estimatedCost: '$5,800 - $7,500',
+  },
+  {
+    id: 'hosp-6',
+    name: 'Cleveland Clinic Abu Dhabi',
+    location: 'Abu Dhabi, UAE',
+    country: 'United Arab Emirates',
+    specialties: ['Digestive Disease', 'Heart & Vascular', 'Neurological Institute', 'Eye Institute'],
+    description: 'Direct extension of US Cleveland Clinic care model, providing world-class complex and critical care specialized services.',
+    rating: 4.9,
+    accreditation: 'JCI Accredited',
+    estimatedCost: '$10,500 - $14,000',
   },
 ];
 
@@ -675,6 +698,7 @@ export async function createPatientCase(caseData: Partial<PatientCase> & { user_
     review_accepted_at: caseData.review_accepted_at ?? null,
     selected_hospital_id: caseData.selected_hospital_id ?? null,
     selected_hospital: caseData.selected_hospital ?? null,
+    recommendation_notes: caseData.recommendation_notes ?? null,
     recommended_hospitals: caseData.recommended_hospitals || [],
     itinerary_notes: caseData.itinerary_notes ?? null,
     itinerary_confirmed_by_patient: caseData.itinerary_confirmed_by_patient ?? false,
@@ -1571,9 +1595,14 @@ export async function patientDeclineCaseReview(caseId: string, reason: string): 
 /**
  * Admin updates hospital recommendations for a case and sends to patient
  */
-export async function adminSetRecommendedHospitals(caseId: string, hospitals: Hospital[]): Promise<void> {
+export async function adminSetRecommendedHospitals(
+  caseId: string, 
+  hospitals: Hospital[],
+  recommendationNotes?: string | null
+): Promise<void> {
   await updatePatientCase(caseId, {
     recommended_hospitals: hospitals,
+    recommendation_notes: recommendationNotes !== undefined ? recommendationNotes : null,
     hospitals_sent_to_patient: true,
     hospital_accepted: false,
     hospital_declined: false,
@@ -2333,14 +2362,13 @@ export async function getHospitals(): Promise<Hospital[]> {
     const snapshot = await withTimeout(getDocs(q), 2500, null);
     if (snapshot && !snapshot.empty) {
       const fromDb = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Hospital));
-      // Merge with default ensuring no duplicates by ID or name
       const ids = new Set(fromDb.map((h) => h.id));
       const names = new Set(fromDb.map((h) => h.name.toLowerCase()));
       const defaults = DEFAULT_HOSPITALS.filter((d) => !ids.has(d.id) && !names.has(d.name.toLowerCase()));
       return [...fromDb, ...defaults];
     }
   } catch (err) {
-    console.warn('Error reading hospitals from Firestore, using defaults:', err);
+    console.warn('Error reading hospitals from Firestore:', err);
   }
 
   // Check local storage for added hospitals

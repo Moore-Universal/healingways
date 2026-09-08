@@ -38,7 +38,6 @@ import {
   subscribeToCaseMessages,
   ChatMessage,
   DEFAULT_COORDINATORS,
-  DEFAULT_HOSPITALS,
   PatientCase,
   Hospital
 } from '@/app/lib/firebase/services';
@@ -681,7 +680,7 @@ export default function AdminCaseDetailPage() {
             <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-600" />
               <span>
-                Clinical evaluation published by {caseRecord.coordinator_name || 'Sarah James'}
+                Clinical evaluation published by {caseRecord.coordinator_name || 'Assigned Coordinator'}
               </span>
             </div>
           </div>
@@ -1296,7 +1295,7 @@ export default function AdminCaseDetailPage() {
               rows={6}
               value={reviewInput}
               onChange={(e) => setReviewInput(e.target.value)}
-              placeholder="e.g. Clinical assessment completed by senior specialist board. Patient is an optimal candidate for corneal collagen cross-linking / specialized ocular surgery abroad..."
+              placeholder="Type clinical evaluation and review here..."
               className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
             />
 

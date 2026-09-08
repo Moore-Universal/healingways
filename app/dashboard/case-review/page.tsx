@@ -189,8 +189,10 @@ export default function PatientCaseReviewPage() {
                   MD
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-blue-900">Dr. K. Mehta &amp; Clinical Board</h3>
-                  <p className="text-xs text-slate-500">Orthopedic &amp; Surgical Evaluation Board</p>
+                  <h3 className="text-base font-bold text-blue-900">
+                    {caseDetails?.coordinator_name ? `${caseDetails.coordinator_name} (Care Coordinator)` : 'Clinical Evaluation Team'}
+                  </h3>
+                  <p className="text-xs text-slate-500">Official Clinical Case Review</p>
                 </div>
               </div>
               {isAccepted ? (
@@ -354,10 +356,10 @@ export default function PatientCaseReviewPage() {
               Case Parameters
             </h3>
             <div className="space-y-2.5 text-xs text-slate-600">
-              <p><strong className="text-slate-800">Need:</strong> {caseDetails?.need || 'Consultation'}</p>
-              <p><strong className="text-slate-800">Specialty:</strong> {caseDetails?.healthcare_area || 'Orthopedics'}</p>
-              <p><strong className="text-slate-800">Diagnosis:</strong> {caseDetails?.diagnosis || 'Specified in intake'}</p>
-              <p><strong className="text-slate-800">Destination Preference:</strong> {caseDetails?.preferred_location || 'Open'}</p>
+              <p><strong className="text-slate-800">Need:</strong> {caseDetails?.need || 'Medical Care'}</p>
+              <p><strong className="text-slate-800">Specialty:</strong> {caseDetails?.healthcare_area || 'Clinical Review'}</p>
+              <p><strong className="text-slate-800">Diagnosis:</strong> {caseDetails?.diagnosis || 'See consultation records'}</p>
+              <p><strong className="text-slate-800">Destination Preference:</strong> {caseDetails?.preferred_location || 'Flexible'}</p>
             </div>
           </div>
 

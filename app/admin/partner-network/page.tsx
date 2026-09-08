@@ -116,9 +116,9 @@ export default function PartnerNetworkPage() {
     const q = searchQuery.toLowerCase();
     return (
       h.name.toLowerCase().includes(q) ||
-      h.location.toLowerCase().includes(q) ||
+      (h.location && h.location.toLowerCase().includes(q)) ||
       (h.country && h.country.toLowerCase().includes(q)) ||
-      h.specialties.some((s) => s.toLowerCase().includes(q))
+      (h.specialties && h.specialties.some((s) => s.toLowerCase().includes(q)))
     );
   });
 
