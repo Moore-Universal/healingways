@@ -61,10 +61,16 @@ export default function AdminTravelPreparation({
   onAdvanceStage,
 }: AdminTravelPreparationProps) {
   const [flightText, setFlightText] = useState<string>(
-    caseRecord.flight_details || TEMPLATES.commercial
+    caseRecord.flight_details || ''
   );
   const [saving, setSaving] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+
+  React.useEffect(() => {
+    if (caseRecord.flight_details !== undefined && caseRecord.flight_details !== null) {
+      setFlightText(caseRecord.flight_details);
+    }
+  }, [caseRecord.flight_details]);
 
   const isConfirmed = caseRecord.confirmed_by_patient;
   const isDeclined = caseRecord.travel_declined;

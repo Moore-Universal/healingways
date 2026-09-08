@@ -89,10 +89,16 @@ export default function AdminMedicalItinerary({
   onAdvanceStage,
 }: AdminMedicalItineraryProps) {
   const [itineraryText, setItineraryText] = useState<string>(
-    caseRecord.itinerary_notes || TEMPLATES.standard
+    caseRecord.itinerary_notes || ''
   );
   const [saving, setSaving] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+
+  React.useEffect(() => {
+    if (caseRecord.itinerary_notes !== undefined && caseRecord.itinerary_notes !== null) {
+      setItineraryText(caseRecord.itinerary_notes);
+    }
+  }, [caseRecord.itinerary_notes]);
 
   const isConfirmed = caseRecord.itinerary_confirmed_by_patient;
   const isDeclined = caseRecord.itinerary_declined;

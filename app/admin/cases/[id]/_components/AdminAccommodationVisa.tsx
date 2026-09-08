@@ -54,19 +54,25 @@ export default function AdminAccommodationVisa({
   const [loadingCatalogue, setLoadingCatalogue] = useState(true);
   const [selectedAccomId, setSelectedAccomId] = useState<string>('');
   const [accomText, setAccomText] = useState<string>(caseRecord.accommodation_details || '');
-  const [visaText, setVisaText] = useState<string>(caseRecord.visa_details || TEMPLATES.visaMedical);
+  const [visaText, setVisaText] = useState<string>(caseRecord.visa_details || '');
 
   const [saving, setSaving] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+
+  useEffect(() => {
+    if (caseRecord.accommodation_details !== undefined && caseRecord.accommodation_details !== null) {
+      setAccomText(caseRecord.accommodation_details);
+    }
+    if (caseRecord.visa_details !== undefined && caseRecord.visa_details !== null) {
+      setVisaText(caseRecord.visa_details);
+    }
+  }, [caseRecord.accommodation_details, caseRecord.visa_details]);
 
   useEffect(() => {
     async function loadAccoms() {
       try {
         const list = await getAccommodations();
         setCatalogue(list);
-        if (!caseRecord.accommodation_details && list.length > 0) {
-          applyAccomFromCatalogue(list[0]);
-        }
       } catch (err) {
         console.error('Error loading accommodation catalogue:', err);
       } finally {
