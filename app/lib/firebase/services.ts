@@ -10,8 +10,10 @@ import {
   orderBy,
   limit,
   onSnapshot,
-  addDoc,
   deleteDoc,
+  QuerySnapshot,
+  DocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import {
   signOut,
@@ -231,8 +233,8 @@ export const DEFAULT_COORDINATORS = [
 ];
 
 // Helper to sanitize Firestore documents
-function formatDoc<T>(docSnap: { id: string; data: () => Record<string, unknown> }): T {
-  const data = docSnap.data();
+function formatDoc<T>(docSnap: { id: string; data: () => DocumentData | Record<string, unknown> | undefined }): T {
+  const data = (docSnap.data() || {}) as Record<string, unknown>;
   const created = data.created_at as { toDate?: () => Date } | string | undefined;
   const updated = data.updated_at as { toDate?: () => Date } | string | undefined;
   return {
@@ -573,7 +575,17 @@ export async function logoutUser(): Promise<void> {
   }
   setStoredUser(null);
   if (typeof window !== 'undefined') {
+    // Clear all consultation draft & submission state
+    localStorage.removeItem('hw_consultation_form_data');
+    localStorage.removeItem('hw_consultation_current_step');
     localStorage.removeItem('hw_consultation_case_id');
+    localStorage.removeItem('hw_consultation_completed');
+    localStorage.removeItem('hw_consultation_completed_case_id');
+    localStorage.removeItem('hw_active_case_id');
+    localStorage.removeItem('hw_user_fullname');
+
+    // Clear user tokens & profile keys
+    localStorage.removeItem('hw_user');
     localStorage.removeItem('hw_user_token');
     localStorage.removeItem('hw_user_email');
     localStorage.removeItem('hw_user_role');
@@ -581,10 +593,18 @@ export async function logoutUser(): Promise<void> {
     localStorage.removeItem('hw_user_id');
     localStorage.removeItem('hw_active_user');
     localStorage.removeItem('hw_admin_auth');
+
+    // Clear draft credentials and notification state
     sessionStorage.removeItem('hw_login_draft_email');
     sessionStorage.removeItem('hw_login_draft_password');
     sessionStorage.removeItem('hw_login_not_found_user');
     sessionStorage.removeItem('hw_login_error_msg');
+    sessionStorage.removeItem('hw_signup_draft_fullname');
+    sessionStorage.removeItem('hw_signup_draft_email');
+    sessionStorage.removeItem('hw_signup_draft_password');
+    sessionStorage.removeItem('hw_signup_draft_confirm_password');
+    sessionStorage.removeItem('hw_signup_error_msg');
+
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('hw_auth_changed', { detail: null }));
   }
@@ -710,6 +730,8 @@ export async function updatePatientCase(caseId: string, updates: Partial<Patient
           localStorage.setItem('hw_all_cases', JSON.stringify(allCases));
         }
       }
+      window.dispatchEvent(new CustomEvent('hw_case_updated', { detail: { id: caseId, ...updates } }));
+      window.dispatchEvent(new Event('storage'));
     } catch {}
   }
 
@@ -942,6 +964,306 @@ export async function getAllCasesForAdmin(): Promise<PatientCase[]> {
   }
 
   return [];
+}
+
+/**
+ * Real-time subscription to a single case by ID
+ */
+export function subscribeToCase(
+  caseId: string,
+  onUpdate: (caseRecord: PatientCase | null) => void
+): () => void {
+  let isUnsubscribed = false;
+
+  // 1. Initial cached value
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('hw_active_case');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.id === caseId) onUpdate(parsed);
+      }
+      const casesRaw = localStorage.getItem('hw_all_cases');
+      if (casesRaw) {
+        const allCases: PatientCase[] = JSON.parse(casesRaw);
+        const found = allCases.find((c) => c.id === caseId || c.case_number === caseId);
+        if (found) onUpdate(found);
+      }
+    } catch {}
+  }
+
+  // 2. Fetch fresh once
+  getCaseById(caseId).then((c) => {
+    if (!isUnsubscribed && c) {
+      onUpdate(c);
+    }
+  });
+
+  // 3. Same-window / local storage listener
+  const handleLocalUpdate = (e: Event) => {
+    if (isUnsubscribed) return;
+    const detail = (e as CustomEvent)?.detail;
+    if (!detail || detail.id === caseId || detail.case_number === caseId) {
+      getCaseById(caseId).then((c) => {
+        if (!isUnsubscribed && c) onUpdate(c);
+      });
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_case_updated', handleLocalUpdate);
+    window.addEventListener('storage', handleLocalUpdate);
+  }
+
+  // 4. Firestore onSnapshot real-time listener
+  let firestoreUnsubscribe: (() => void) | null = null;
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    firestoreUnsubscribe = onSnapshot(
+      caseRef,
+      (snap) => {
+        if (isUnsubscribed) return;
+        if (snap.exists()) {
+          const formatted = formatDoc<PatientCase>(snap);
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('hw_active_case', JSON.stringify(formatted));
+            } catch {}
+          }
+          onUpdate(formatted);
+        }
+      },
+      (error) => {
+        console.warn('Firestore onSnapshot notice for case:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('Could not establish Firestore snapshot listener for case:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    if (firestoreUnsubscribe) firestoreUnsubscribe();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_case_updated', handleLocalUpdate);
+      window.removeEventListener('storage', handleLocalUpdate);
+    }
+  };
+}
+
+/**
+ * Real-time subscription to the active case of a logged-in user
+ */
+export function subscribeToUserActiveCase(
+  userId: string | null | undefined,
+  userEmail: string | null | undefined,
+  onUpdate: (caseRecord: PatientCase | null) => void
+): () => void {
+  let isUnsubscribed = false;
+  const effectiveUid = userId || getCurrentUserId();
+  const effectiveEmail = userEmail || getCurrentUserEmail();
+
+  // 1. Initial fetch from getUserActiveCase
+  getUserActiveCase(effectiveUid, effectiveEmail).then((initialCase) => {
+    if (!isUnsubscribed && initialCase) {
+      onUpdate(initialCase);
+    }
+  });
+
+  // 2. Local window event listener
+  const handleLocalUpdate = () => {
+    if (isUnsubscribed) return;
+    getUserActiveCase(effectiveUid, effectiveEmail).then((updated) => {
+      if (!isUnsubscribed && updated) onUpdate(updated);
+    });
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_case_updated', handleLocalUpdate);
+    window.addEventListener('storage', handleLocalUpdate);
+  }
+
+  // 3. Firestore real-time queries
+  const unsubs: Array<() => void> = [];
+  try {
+    const casesRef = collection(db, 'cases');
+
+    if (effectiveUid) {
+      const qUid = query(casesRef, where('user_id', '==', effectiveUid));
+      const un = onSnapshot(
+        qUid,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          if (!snapshot.empty) {
+            const docs = snapshot.docs.map((d) => formatDoc<PatientCase>(d));
+            docs.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+            onUpdate(docs[0]);
+          }
+        },
+        (err) => console.warn('User active case snapshot notice (UID):', err)
+      );
+      unsubs.push(un);
+    }
+
+    if (effectiveEmail) {
+      const qEmail = query(casesRef, where('patient_email', '==', effectiveEmail));
+      const un = onSnapshot(
+        qEmail,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          if (!snapshot.empty) {
+            const docs = snapshot.docs.map((d) => formatDoc<PatientCase>(d));
+            docs.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+            onUpdate(docs[0]);
+          }
+        },
+        (err) => console.warn('User active case snapshot notice (Email):', err)
+      );
+      unsubs.push(un);
+    }
+  } catch (err) {
+    console.warn('Could not establish Firestore active case snapshot:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    unsubs.forEach((u) => u());
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_case_updated', handleLocalUpdate);
+      window.removeEventListener('storage', handleLocalUpdate);
+    }
+  };
+}
+
+/**
+ * Real-time subscription to all cases for the admin portal
+ */
+export function subscribeToAllCasesForAdmin(
+  onUpdate: (cases: PatientCase[]) => void
+): () => void {
+  let isUnsubscribed = false;
+
+  // Initial load
+  getAllCasesForAdmin().then((list) => {
+    if (!isUnsubscribed && list) onUpdate(list);
+  });
+
+  const handleLocalUpdate = () => {
+    if (isUnsubscribed) return;
+    getAllCasesForAdmin().then((list) => {
+      if (!isUnsubscribed && list) onUpdate(list);
+    });
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_case_updated', handleLocalUpdate);
+    window.addEventListener('storage', handleLocalUpdate);
+  }
+
+  let firestoreUnsubscribe: (() => void) | null = null;
+  try {
+    const casesRef = collection(db, 'cases');
+    firestoreUnsubscribe = onSnapshot(
+      casesRef,
+      (snapshot) => {
+        if (isUnsubscribed) return;
+        if (!snapshot.empty) {
+          const list: PatientCase[] = [];
+          snapshot.forEach((d) => {
+            list.push(formatDoc<PatientCase>(d));
+          });
+          list.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('hw_all_cases', JSON.stringify(list));
+            } catch {}
+          }
+          onUpdate(list);
+        }
+      },
+      (err) => {
+        console.warn('Admin cases snapshot notice:', err);
+      }
+    );
+  } catch (err) {
+    console.warn('Could not establish Firestore snapshot for all cases:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    if (firestoreUnsubscribe) firestoreUnsubscribe();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_case_updated', handleLocalUpdate);
+      window.removeEventListener('storage', handleLocalUpdate);
+    }
+  };
+}
+
+/**
+ * Real-time subscription to all cases for a patient
+ */
+export function subscribeToUserCases(
+  userId: string | null | undefined,
+  userEmail: string | null | undefined,
+  onUpdate: (cases: PatientCase[]) => void
+): () => void {
+  let isUnsubscribed = false;
+  const effectiveUid = userId || getCurrentUserId();
+  const effectiveEmail = userEmail || getCurrentUserEmail();
+
+  getUserCases(effectiveUid, effectiveEmail).then((cases) => {
+    if (!isUnsubscribed && cases) onUpdate(cases);
+  });
+
+  const handleLocalUpdate = () => {
+    if (isUnsubscribed) return;
+    getUserCases(effectiveUid, effectiveEmail).then((cases) => {
+      if (!isUnsubscribed && cases) onUpdate(cases);
+    });
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_case_updated', handleLocalUpdate);
+    window.addEventListener('storage', handleLocalUpdate);
+  }
+
+  const unsubs: Array<() => void> = [];
+  try {
+    const casesRef = collection(db, 'cases');
+    const casesMap = new Map<string, PatientCase>();
+
+    const handleSnap = (snapshot: QuerySnapshot<DocumentData>) => {
+      if (isUnsubscribed) return;
+      snapshot.docs.forEach((d: DocumentSnapshot<DocumentData>) => {
+        casesMap.set(d.id, formatDoc<PatientCase>(d));
+      });
+      const sorted = Array.from(casesMap.values()).sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      onUpdate(sorted);
+    };
+
+    if (effectiveUid) {
+      const qUid = query(casesRef, where('user_id', '==', effectiveUid));
+      unsubs.push(onSnapshot(qUid, handleSnap, (err) => console.warn('User cases snapshot notice (UID):', err)));
+    }
+    if (effectiveEmail) {
+      const qEmail = query(casesRef, where('patient_email', '==', effectiveEmail));
+      unsubs.push(onSnapshot(qEmail, handleSnap, (err) => console.warn('User cases snapshot notice (Email):', err)));
+    }
+  } catch (err) {
+    console.warn('Could not establish Firestore snapshot for user cases:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    unsubs.forEach((u) => u());
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_case_updated', handleLocalUpdate);
+      window.removeEventListener('storage', handleLocalUpdate);
+    }
+  };
 }
 
 /**
@@ -1756,6 +2078,73 @@ export async function getAdminConversations(): Promise<
           : "Thanks for reaching out — we've received your consultation request and will begin reviewing your case shortly."),
     };
   });
+}
+
+/**
+ * Subscribes to real-time conversation list updates for the admin messages dashboard
+ */
+export function subscribeToAdminConversations(
+  onUpdate: (
+    conversations: Array<{
+      id: string;
+      caseRecordId: string;
+      name: string;
+      caseId: string;
+      avatarLetter: string;
+      unread?: boolean;
+      lastMessage: string;
+    }>
+  ) => void
+): () => void {
+  let isUnsubscribed = false;
+
+  const refreshList = async () => {
+    try {
+      const list = await getAdminConversations();
+      if (!isUnsubscribed && list) {
+        onUpdate(list);
+      }
+    } catch (e) {
+      console.warn('Error refreshing admin conversations list:', e);
+    }
+  };
+
+  refreshList();
+
+  const handleLocalEvent = () => {
+    if (!isUnsubscribed) refreshList();
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hw_new_chat_message', handleLocalEvent);
+    window.addEventListener('hw_case_updated', handleLocalEvent);
+    window.addEventListener('storage', handleLocalEvent);
+  }
+
+  const unsubs: Array<() => void> = [];
+  try {
+    const casesUnsub = onSnapshot(collection(db, 'cases'), () => {
+      if (!isUnsubscribed) refreshList();
+    });
+    unsubs.push(casesUnsub);
+
+    const msgsUnsub = onSnapshot(collection(db, 'messages'), () => {
+      if (!isUnsubscribed) refreshList();
+    });
+    unsubs.push(msgsUnsub);
+  } catch (err) {
+    console.warn('Error establishing admin conversation snapshots:', err);
+  }
+
+  return () => {
+    isUnsubscribed = true;
+    unsubs.forEach((u) => u());
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('hw_new_chat_message', handleLocalEvent);
+      window.removeEventListener('hw_case_updated', handleLocalEvent);
+      window.removeEventListener('storage', handleLocalEvent);
+    }
+  };
 }
 
 export const DEFAULT_ACCOMMODATIONS: Accommodation[] = [

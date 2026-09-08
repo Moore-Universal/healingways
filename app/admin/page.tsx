@@ -11,7 +11,8 @@ import {
   UserCheck 
 } from 'lucide-react';
 import { 
-  getAllCasesForAdmin, 
+  getAllCasesForAdmin,
+  subscribeToAllCasesForAdmin,
   updatePatientCase, 
   PatientCase 
 } from '@/app/lib/firebase/services';
@@ -50,23 +51,21 @@ export default function AdminDashboardPage() {
   const [savingAssignments, setSavingAssignments] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Initialize cases directly from database
-  const loadDashboardCases = useCallback(async () => {
-    setLoading(true);
-    try {
-      const fetched = await getAllCasesForAdmin();
-      setAllCases(fetched || []);
-    } catch (err) {
-      console.error('Error fetching admin dashboard data from database:', err);
-      setAllCases([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Initialize and subscribe to real-time cases directly from database
   useEffect(() => {
-    loadDashboardCases();
-  }, [loadDashboardCases]);
+    let isMounted = true;
+
+    const unsubscribe = subscribeToAllCasesForAdmin((fetched) => {
+      if (!isMounted) return;
+      setAllCases(fetched || []);
+      setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Compute metrics dynamically from database cases
   const newConsultationsCount = allCases.filter(

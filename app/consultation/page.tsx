@@ -102,9 +102,17 @@ export default function ConsultationPage() {
 
       if (savedStep) {
         const stepNum = parseInt(savedStep, 10);
-        if (stepNum >= 1 && stepNum <= 6) {
+        // Only restore in-progress draft steps (1-5). Step 6 is the post-submission confirmation and should never be loaded on revisit.
+        if (stepNum >= 1 && stepNum <= 5) {
           setCurrentStep(stepNum);
+        } else {
+          setCurrentStep(1);
+          try {
+            localStorage.removeItem(STEP_KEY);
+          } catch {}
         }
+      } else {
+        setCurrentStep(1);
       }
       if (savedCaseId) {
         setCaseId(savedCaseId);
@@ -128,10 +136,12 @@ export default function ConsultationPage() {
   useEffect(() => {
     if (!isLoaded) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-      localStorage.setItem(STEP_KEY, currentStep.toString());
-      if (caseId) {
-        localStorage.setItem(CASE_KEY, caseId);
+      if (currentStep >= 1 && currentStep <= 5) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        localStorage.setItem(STEP_KEY, currentStep.toString());
+        if (caseId) {
+          localStorage.setItem(CASE_KEY, caseId);
+        }
       }
     } catch (e) {
       console.warn('Could not persist consultation state', e);
@@ -229,8 +239,8 @@ export default function ConsultationPage() {
       } catch {}
     }
     setCurrentStep(6);
-    localStorage.setItem(STEP_KEY, '6');
     try {
+      localStorage.removeItem(STEP_KEY);
       localStorage.removeItem(STORAGE_KEY);
     } catch {}
   };

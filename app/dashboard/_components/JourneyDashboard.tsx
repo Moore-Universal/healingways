@@ -16,7 +16,7 @@ import {
 import HealthcareStepper from './HealthcareStepper';
 import { auth } from '@/app/lib/firebase/client';
 import { 
-  getUserActiveCase, 
+  subscribeToUserActiveCase,
   getCurrentUserProfile, 
   getStoredUser,
   saveCaseDocument, 
@@ -48,23 +48,23 @@ export default function JourneyDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    let unsubscribe = () => {};
+    let authUnsubscribe = () => {};
+    let caseUnsubscribe = () => {};
 
-    async function loadData() {
-      setLoadingUser(true);
+    authUnsubscribe = auth.onAuthStateChanged(async (user) => {
+      const stored = getStoredUser();
+      const effectiveUid = user?.uid || stored?.uid || null;
+      const effectiveEmail = user?.email || stored?.email || null;
 
-      unsubscribe = auth.onAuthStateChanged(async (user) => {
-        const stored = getStoredUser();
-        const effectiveUid = user?.uid || stored?.uid || null;
-        const effectiveEmail = user?.email || stored?.email || null;
-
-        if (effectiveUid || effectiveEmail) {
-          setUserId(effectiveUid);
-          const profile = await getCurrentUserProfile();
+      if (effectiveUid || effectiveEmail) {
+        setUserId(effectiveUid);
+        getCurrentUserProfile().then((profile) => {
           const name = profile?.fullName || stored?.fullName || user?.displayName || user?.email?.split('@')[0] || 'Patient';
           setUserName(name);
+        });
 
-          const foundCase = await getUserActiveCase(effectiveUid, effectiveEmail);
+        caseUnsubscribe();
+        caseUnsubscribe = subscribeToUserActiveCase(effectiveUid, effectiveEmail, (foundCase) => {
           if (foundCase) {
             setActiveCase(foundCase);
             if (foundCase.documents && foundCase.documents.length > 0) {
@@ -78,17 +78,19 @@ export default function JourneyDashboard() {
               );
             }
           }
-        } else {
-          setUserName('');
-          setActiveCase(null);
-        }
+          setLoadingUser(false);
+        });
+      } else {
+        setUserName('');
+        setActiveCase(null);
         setLoadingUser(false);
-      });
-    }
+      }
+    });
 
-    loadData();
-
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      caseUnsubscribe();
+    };
   }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

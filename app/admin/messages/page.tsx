@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import {
   getAdminConversations,
+  subscribeToAdminConversations,
   sendChatMessage,
   subscribeToCaseMessages,
   ChatMessage,
@@ -29,29 +30,22 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load real conversations from Firestore / cases
+  // Subscribe to real-time conversations list from Firestore / cases
   useEffect(() => {
     let isMounted = true;
-    async function loadConversations() {
-      setLoading(true);
-      try {
-        const list = await getAdminConversations();
-        if (!isMounted) return;
-        setConversations(list || []);
-        if (list && list.length > 0) {
-          setSelectedId((prev) => (prev && list.some((c) => c.id === prev) ? prev : list[0].id));
-        }
-      } catch (err) {
-        console.error('Error loading conversations for admin messages:', err);
-        if (isMounted) setConversations([]);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
 
-    loadConversations();
+    const unsubscribe = subscribeToAdminConversations((list) => {
+      if (!isMounted) return;
+      setConversations(list || []);
+      if (list && list.length > 0) {
+        setSelectedId((prev) => (prev && list.some((c) => c.id === prev) ? prev : list[0].id));
+      }
+      setLoading(false);
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 

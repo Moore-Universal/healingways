@@ -28,7 +28,8 @@ import {
   Activity,
 } from 'lucide-react';
 import { 
-  getCaseById, 
+  getCaseById,
+  subscribeToCase,
   updatePatientCase, 
   adminSubmitCaseReview,
   adminAdvanceCaseStage,
@@ -154,68 +155,60 @@ export default function AdminCaseDetailPage() {
     }, 4000);
   };
 
-  const fetchCase = useCallback(async () => {
-    if (!caseId) return;
-    setLoading(true);
-    try {
-      const c = await getCaseById(caseId);
-      if (c) {
-        setCaseRecord(c);
-        if (c.review_text) {
-          setReviewInput(c.review_text);
-        }
-        if (c.billing_paid !== undefined) {
-          setPaidAmount(c.billing_paid);
-        }
-        if (c.billing_outstanding !== undefined) {
-          setOutstandingAmount(c.billing_outstanding);
-          setBillingStatus(c.billing_outstanding === 0 ? 'Paid' : 'Outstanding');
-        }
-        if (c.document_status) {
-          setDocStatus(c.document_status);
-        }
-        if (c.document_name) {
-          setDocName(c.document_name);
-        }
-        if (c.internal_notes && c.internal_notes.length > 0) {
-          setNotesList(c.internal_notes);
-        }
-        if (c.tasks && c.tasks.length > 0) {
-          setTasksList(c.tasks);
-        }
-        if (c.accommodations && c.accommodations.length > 0) {
-          setAccommodationsList(
-            c.accommodations.map((a) => ({
-              id: a.id,
-              name: a.name,
-              type: a.type,
-              location: a.location,
-              pricePerNight: a.price,
-            }))
-          );
-        }
-        if (c.workflow_stage === 'Medical Itinerary') {
-          setActiveWorkstationTab('Medical Itinerary');
-        } else if (c.workflow_stage === 'Accommodation & Visa') {
-          setActiveWorkstationTab('Accommodation & Visa');
-        } else if (c.workflow_stage === 'Travel Preparation') {
-          setActiveWorkstationTab('Travel Preparation');
-        } else if (c.workflow_stage === 'Treatment & Recovery' || c.workflow_stage === 'Completed') {
-          setActiveWorkstationTab('Treatment & Recovery');
-        } else {
-          setActiveWorkstationTab('Hospital Recommendation');
-        }
-      }
-    } catch (err) {
-      console.error('Error loading patient case:', err);
-    } finally {
-      setLoading(false);
+  const applyCaseData = useCallback((c: PatientCase) => {
+    setCaseRecord(c);
+    if (c.review_text !== undefined && c.review_text !== null) {
+      setReviewInput(c.review_text);
     }
-  }, [caseId]);
+    if (c.billing_paid !== undefined) {
+      setPaidAmount(c.billing_paid);
+    }
+    if (c.billing_outstanding !== undefined) {
+      setOutstandingAmount(c.billing_outstanding);
+      setBillingStatus(c.billing_outstanding === 0 ? 'Paid' : 'Outstanding');
+    }
+    if (c.document_status) {
+      setDocStatus(c.document_status);
+    }
+    if (c.document_name) {
+      setDocName(c.document_name);
+    }
+    if (c.internal_notes && c.internal_notes.length > 0) {
+      setNotesList(c.internal_notes);
+    }
+    if (c.tasks && c.tasks.length > 0) {
+      setTasksList(c.tasks);
+    }
+    if (c.accommodations && c.accommodations.length > 0) {
+      setAccommodationsList(
+        c.accommodations.map((a) => ({
+          id: a.id,
+          name: a.name,
+          type: a.type,
+          location: a.location,
+          pricePerNight: a.price,
+        }))
+      );
+    }
+  }, []);
 
   useEffect(() => {
-    fetchCase();
-  }, [fetchCase]);
+    if (!caseId) return;
+    let isMounted = true;
+
+    const unsubscribe = subscribeToCase(caseId, (c) => {
+      if (!isMounted) return;
+      if (c) {
+        applyCaseData(c);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [caseId, applyCaseData]);
 
   // Helper to determine stage index (0 to 7)
   const getStageIndex = (stageName?: string) => {

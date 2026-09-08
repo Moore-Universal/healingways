@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Header from '../Header';
 import {
-  getUserActiveCase,
+  subscribeToUserActiveCase,
   getStoredUser,
   sendChatMessage,
   subscribeToCaseMessages,
@@ -31,52 +31,43 @@ export default function MessagesPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Load active case and subscribe to messages
+  // Load active case and subscribe to messages in real-time
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let msgUnsubscribe: (() => void) | null = null;
     let isMounted = true;
 
-    async function init() {
-      try {
-        const stored = getStoredUser();
-        const user = auth.currentUser;
-        const uid = user?.uid || stored?.uid || null;
-        const email = user?.email || stored?.email || null;
-        const c = await getUserActiveCase(uid, email);
+    const stored = getStoredUser();
+    const user = auth.currentUser;
+    const uid = user?.uid || stored?.uid || null;
+    const email = user?.email || stored?.email || null;
 
-        if (!isMounted) return;
+    const caseUnsubscribe = subscribeToUserActiveCase(uid, email, (c) => {
+      if (!isMounted) return;
+      setActiveCase(c || null);
+      setLoading(false);
 
-        setActiveCase(c || null);
+      if (c) {
+        if (msgUnsubscribe) msgUnsubscribe();
+        const primaryId = c.id;
+        const altId = c.case_number;
 
-        if (c) {
-          const primaryId = c.id;
-          const altId = c.case_number;
-
-          unsubscribe = subscribeToCaseMessages(
-            primaryId,
-            (msgs) => {
-              if (isMounted) {
-                setMessages(msgs);
-              }
-            },
-            altId
-          );
-        }
-      } catch (err) {
-        console.error('Error initializing patient messages:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        msgUnsubscribe = subscribeToCaseMessages(
+          primaryId,
+          (msgs) => {
+            if (isMounted) {
+              setMessages(msgs);
+            }
+          },
+          altId
+        );
       }
-    }
-
-    init();
+    });
 
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
+      caseUnsubscribe();
+      if (msgUnsubscribe) {
+        msgUnsubscribe();
       }
     };
   }, []);

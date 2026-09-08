@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Calendar, Loader2, ArrowRight, Filter } from 'lucide-react';
 import { 
-  getAllCasesForAdmin, 
+  getAllCasesForAdmin,
+  subscribeToAllCasesForAdmin,
   PatientCase 
 } from '@/app/lib/firebase/services';
 
@@ -17,22 +18,21 @@ export default function PatientCasesPage() {
   const [selectedFilter, setSelectedFilter] = useState<StatusFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchCases = useCallback(async () => {
-    setLoading(true);
-    try {
-      const list = await getAllCasesForAdmin();
-      setAllCases(list);
-      setFilteredCases(list);
-    } catch (err) {
-      console.error('Error fetching patient cases:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchCases();
-  }, [fetchCases]);
+    let isMounted = true;
+
+    const unsubscribe = subscribeToAllCasesForAdmin((list) => {
+      if (!isMounted) return;
+      setAllCases(list || []);
+      setFilteredCases(list || []);
+      setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Client-side instant filtering
   useEffect(() => {

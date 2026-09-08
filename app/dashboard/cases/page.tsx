@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '../Header';
 import { Plus, Loader2, ArrowRight, FolderKanban } from 'lucide-react';
-import { getUserCases, PatientCase, getStoredUser } from '@/app/lib/firebase/services';
+import { subscribeToUserCases, PatientCase, getStoredUser } from '@/app/lib/firebase/services';
 
 export default function MyCasesPage() {
   const [cases, setCases] = useState<PatientCase[]>([]);
@@ -13,29 +13,19 @@ export default function MyCasesPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadCases() {
-      setLoading(true);
-      try {
-        const stored = getStoredUser();
-        const uid = stored?.uid || null;
-        const email = stored?.email || null;
-        const fetched = await getUserCases(uid, email);
-        if (isMounted) {
-          setCases(fetched);
-        }
-      } catch (err) {
-        console.error('Error fetching user cases:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const stored = getStoredUser();
+    const uid = stored?.uid || null;
+    const email = stored?.email || null;
 
-    loadCases();
+    const unsubscribe = subscribeToUserCases(uid, email, (fetched) => {
+      if (!isMounted) return;
+      setCases(fetched || []);
+      setLoading(false);
+    });
 
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
