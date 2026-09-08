@@ -12,7 +12,9 @@ import {
   Search,
   Check,
   Filter,
-  XCircle
+  XCircle,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { 
   PatientCase, 
@@ -306,24 +308,64 @@ export default function AdminHospitalRecommendations({
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Hospital Listings Catalogue
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Hospital Listings Catalogue
+                </h4>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                  Partner Network Only
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Click any hospital card to include or exclude it from the recommendation packet.
+                Recommendations are selected exclusively from the Partner Network catalogue. Click cards below to select.
               </p>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search catalogue by name, country, specialty..."
-                className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white"
-              />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Search Bar */}
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search catalogue..."
+                  className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              {/* Refresh catalogue */}
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const list = await getHospitals();
+                    setCatalogueHospitals(list);
+                    showToast('Hospital catalogue refreshed from Partner Network.');
+                  } catch {
+                    showToast('Failed to refresh catalogue.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="p-2 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-600 hover:text-slate-900 bg-white transition-colors cursor-pointer shrink-0"
+                title="Refresh Hospital Catalogue from Partner Network"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+
+              {/* Partner Network Page Link */}
+              <a
+                href="/admin/partner-network"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 border border-blue-200/60"
+                title="Open Partner Network Manager to add or edit hospitals"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Manage Catalogue</span>
+              </a>
             </div>
           </div>
 
