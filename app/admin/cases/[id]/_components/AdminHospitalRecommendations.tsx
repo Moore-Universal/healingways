@@ -112,35 +112,9 @@ export default function AdminHospitalRecommendations({
     }
   };
 
-  const handleSaveRecommendations = async () => {
+  const handleSendAndAdvance = async () => {
     if (selectedHospitals.length === 0 && !recommendationNotes.trim()) {
       showToast('Please select at least one hospital from the catalogue or enter recommendation notes.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await adminSetRecommendedHospitals(
-        caseRecord.id,
-        selectedHospitals,
-        recommendationNotes.trim()
-      );
-      onUpdateCase({
-        recommended_hospitals: selectedHospitals,
-        recommendation_notes: recommendationNotes.trim()
-      });
-      showToast('Hospital recommendations and notes saved successfully.');
-    } catch (err: unknown) {
-      const error = err as Error;
-      showToast(error.message || 'Failed to save recommendations.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSendAndAdvance = async () => {
-    if (selectedHospitals.length === 0) {
-      showToast('Please select at least one hospital from the catalogue before sending to the patient.');
       return;
     }
 
@@ -156,7 +130,7 @@ export default function AdminHospitalRecommendations({
         recommendation_notes: recommendationNotes.trim()
       });
       await onAdvanceStage('Hospital Recommendation');
-      showToast('Hospital recommendations sent to patient!');
+      showToast('Hospital recommendations & review sent to patient and stage advanced!');
     } catch (err: unknown) {
       const error = err as Error;
       showToast(error.message || 'Failed to advance stage.');
@@ -195,27 +169,17 @@ export default function AdminHospitalRecommendations({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              disabled={saving || advancing}
-              onClick={handleSaveRecommendations}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Save Draft
-            </button>
-
-            <button
-              type="button"
-              disabled={advancing || saving || selectedHospitals.length === 0}
+              disabled={advancing || saving || (selectedHospitals.length === 0 && !recommendationNotes.trim())}
               onClick={handleSendAndAdvance}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {advancing ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Submitting &amp; Advancing Stage...
                 </>
               ) : (
                 <>
-                  <Send className="w-3.5 h-3.5" /> Send to Patient
+                  <Send className="w-4 h-4" /> Send Review &amp; Advance Stage
                 </>
               )}
             </button>

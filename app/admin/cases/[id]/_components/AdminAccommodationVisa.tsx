@@ -91,7 +91,7 @@ export default function AdminAccommodationVisa({
   const isDeclined = caseRecord.accommodation_visa_declined;
   const isSent = caseRecord.accommodation_visa_sent_to_patient;
 
-  const handleSendDetails = async () => {
+  const handleSendAndAdvance = async () => {
     if (!accomText.trim() || !visaText.trim()) {
       showToast('Please enter both accommodation and visa details.');
       return;
@@ -107,29 +107,13 @@ export default function AdminAccommodationVisa({
         accommodation_visa_declined: false,
         accommodation_visa_decline_reason: '',
       });
-      showToast('Accommodation & visa plan published & sent to patient.');
+      await onAdvanceStage('Travel Preparation');
+      showToast('Accommodation & visa plan published & stage advanced to Travel Preparation.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error sending accommodation & visa details.';
       showToast(msg);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleAdvance = async () => {
-    if (!isConfirmed) {
-      showToast('Patient must review and confirm the accommodation & visa plan before advancing.');
-      return;
-    }
-    setAdvancing(true);
-    try {
-      await onAdvanceStage('Travel Preparation');
-      showToast('Stage advanced to Travel Preparation.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error advancing to Travel Preparation.';
-      showToast(msg);
-    } finally {
-      setAdvancing(false);
     }
   };
 
@@ -301,39 +285,22 @@ export default function AdminAccommodationVisa({
           Sent directly to the patient&apos;s accommodation portal with booking codes and official visa guidance.
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             disabled={saving || !accomText.trim() || !visaText.trim()}
-            onClick={handleSendDetails}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+            onClick={handleSendAndAdvance}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-2xs disabled:opacity-50"
           >
             {saving ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Sending...</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Sending &amp; Advancing Stage...</span>
               </>
             ) : (
               <>
-                <Send className="w-3.5 h-3.5" />
-                <span>Send Plan to Patient</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            disabled={advancing || !isConfirmed}
-            onClick={handleAdvance}
-            title={!isConfirmed ? "Patient must review and confirm before advancing" : "Advance stage"}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {advancing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <>
-                <span>Advance to Travel</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
+                <span>Send Plan &amp; Advance Stage</span>
               </>
             )}
           </button>

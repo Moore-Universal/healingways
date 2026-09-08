@@ -1314,7 +1314,7 @@ export default function AdminCaseDetailPage() {
                 className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 {savingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Publish Clinical Review
+                Publish Review &amp; Advance Stage
               </button>
             </div>
           </div>

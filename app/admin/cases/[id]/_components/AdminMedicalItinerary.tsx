@@ -98,7 +98,7 @@ export default function AdminMedicalItinerary({
   const isDeclined = caseRecord.itinerary_declined;
   const isSent = caseRecord.itinerary_sent_to_patient;
 
-  const handleSendItinerary = async () => {
+  const handleSendAndAdvance = async () => {
     if (!itineraryText.trim()) {
       showToast('Please enter itinerary details.');
       return;
@@ -113,30 +113,13 @@ export default function AdminMedicalItinerary({
         itinerary_declined: false,
         itinerary_decline_reason: '',
       });
-      showToast('Medical itinerary published & sent to patient portal.');
+      await onAdvanceStage('Accommodation & Visa');
+      showToast('Medical itinerary published & stage advanced to Accommodation & Visa.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error sending itinerary.';
       showToast(msg);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleQuickAdvance = async () => {
-    setAdvancing(true);
-    try {
-      await onUpdateCase({
-        itinerary_notes: itineraryText.trim() || TEMPLATES.standard,
-        itinerary_confirmed_by_patient: true,
-        itinerary_declined: false,
-      });
-      await onAdvanceStage('Accommodation & Visa');
-      showToast('Itinerary confirmed. Advanced to Accommodation & Visa.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error advancing to Accommodation & Visa.';
-      showToast(msg);
-    } finally {
-      setAdvancing(false);
     }
   };
 
@@ -265,38 +248,22 @@ export default function AdminMedicalItinerary({
           The patient can review and accept this schedule or request adjustments in their dashboard.
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             disabled={saving || !itineraryText.trim()}
-            onClick={handleSendItinerary}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+            onClick={handleSendAndAdvance}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-2xs disabled:opacity-50"
           >
             {saving ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Sending...</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Sending &amp; Advancing Stage...</span>
               </>
             ) : (
               <>
-                <Send className="w-3.5 h-3.5" />
-                <span>Send Itinerary to Patient</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            disabled={advancing}
-            onClick={handleQuickAdvance}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
-          >
-            {advancing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <>
-                <span>Approve &amp; Advance to Accom. &amp; Visa</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
+                <span>Send Itinerary &amp; Advance Stage</span>
               </>
             )}
           </button>
