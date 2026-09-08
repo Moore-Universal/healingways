@@ -39,7 +39,8 @@ import {
   ChatMessage,
   DEFAULT_COORDINATORS,
   PatientCase,
-  Hospital
+  Hospital,
+  getJourneyStepNumber
 } from '@/app/lib/firebase/services';
 import AdminHospitalRecommendations from './_components/AdminHospitalRecommendations';
 import AdminMedicalItinerary from './_components/AdminMedicalItinerary';
@@ -210,6 +211,139 @@ export default function AdminCaseDetailPage() {
       unsubscribe();
     };
   }, [caseId, applyCaseData]);
+
+  // Helper to determine step number for workstation tabs
+  const getStepNumberForTab = useCallback((tabId: string): number => {
+    switch (tabId) {
+      case 'Hospital Recommendation':
+        return 3;
+      case 'Medical Itinerary':
+        return 4;
+      case 'Accommodation & Visa':
+        return 5;
+      case 'Travel Preparation':
+        return 6;
+      case 'Treatment & Recovery':
+        return 7;
+      default:
+        return 3;
+    }
+  }, []);
+
+  // Check if a specific journey step (1 to 7) is unlocked and accessible for the admin
+  const checkAdminStepAccess = useCallback((stepNumber: number, cRecord: PatientCase | null): { allowed: boolean; reason?: string; requiredStep?: number } => {
+    if (!cRecord) {
+      return { allowed: false, reason: 'Case record is missing or loading.' };
+    }
+
+    if (stepNumber <= 2) {
+      return { allowed: true };
+    }
+
+    const caseCurrentStep = getJourneyStepNumber(cRecord.workflow_stage || cRecord.stage);
+
+    if (stepNumber <= caseCurrentStep) {
+      return { allowed: true };
+    }
+
+    // Step 3: Hospital Recommendation
+    if (stepNumber === 3) {
+      const caseReviewSubmitted = !!(cRecord.review_text && cRecord.review_text.trim().length > 0) || cRecord.review_sent_to_patient || caseCurrentStep >= 2;
+      if (!caseReviewSubmitted) {
+        return {
+          allowed: false,
+          reason: 'You must submit the Clinical Case Review in Step 2 before unlocking Hospital Recommendations.',
+          requiredStep: 2,
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Step 4: Medical Itinerary
+    if (stepNumber === 4) {
+      const hospitalRecSent = !!(
+        (cRecord.recommended_hospitals && cRecord.recommended_hospitals.length > 0) ||
+        cRecord.hospitals_sent_to_patient ||
+        cRecord.selected_hospital_id ||
+        caseCurrentStep >= 3
+      );
+      if (!hospitalRecSent) {
+        return {
+          allowed: false,
+          reason: 'You must select and publish Hospital Recommendations in Step 3 before unlocking the Medical Itinerary workstation.',
+          requiredStep: 3,
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Step 5: Accommodation & Visa
+    if (stepNumber === 5) {
+      const itinerarySent = !!(
+        cRecord.itinerary_sent_to_patient ||
+        (cRecord.itinerary_notes && cRecord.itinerary_notes.trim().length > 0) ||
+        cRecord.itinerary_confirmed_by_patient ||
+        caseCurrentStep >= 4
+      );
+      if (!itinerarySent) {
+        return {
+          allowed: false,
+          reason: 'You must publish the Medical Itinerary in Step 4 before unlocking Accommodation & Visa arrangements.',
+          requiredStep: 4,
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Step 6: Travel Preparation
+    if (stepNumber === 6) {
+      const accomVisaSent = !!(
+        cRecord.accommodation_visa_sent_to_patient ||
+        (cRecord.accommodation_details && cRecord.accommodation_details.trim().length > 0) ||
+        (cRecord.visa_details && cRecord.visa_details.trim().length > 0) ||
+        cRecord.accommodation_visa_confirmed_by_patient ||
+        caseCurrentStep >= 5
+      );
+      if (!accomVisaSent) {
+        return {
+          allowed: false,
+          reason: 'You must send Accommodation & Visa arrangements in Step 5 before unlocking Travel Preparation.',
+          requiredStep: 5,
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Step 7: Treatment & Recovery
+    if (stepNumber === 7) {
+      const travelPrepSent = !!(
+        (cRecord.flight_details && cRecord.flight_details.trim().length > 0) ||
+        cRecord.confirmed_by_patient ||
+        caseCurrentStep >= 6
+      );
+      if (!travelPrepSent) {
+        return {
+          allowed: false,
+          reason: 'You must complete Travel Preparation & flight details in Step 6 before unlocking Treatment & Recovery monitoring.',
+          requiredStep: 6,
+        };
+      }
+      return { allowed: true };
+    }
+
+    return { allowed: true };
+  }, []);
+
+  // Auto-sync workstation tab to current case stage
+  useEffect(() => {
+    if (!caseRecord) return;
+    const stepNum = getJourneyStepNumber(caseRecord.workflow_stage || caseRecord.stage);
+    if (stepNum === 3) setActiveWorkstationTab('Hospital Recommendation');
+    else if (stepNum === 4) setActiveWorkstationTab('Medical Itinerary');
+    else if (stepNum === 5) setActiveWorkstationTab('Accommodation & Visa');
+    else if (stepNum === 6) setActiveWorkstationTab('Travel Preparation');
+    else if (stepNum >= 7) setActiveWorkstationTab('Treatment & Recovery');
+  }, [caseRecord?.workflow_stage, caseRecord?.stage]);
 
   // Helper to determine stage index (0 to 7)
   const getStageIndex = (stageName?: string) => {
@@ -527,8 +661,113 @@ export default function AdminCaseDetailPage() {
         </div>
       </div>
 
+      {/* ADMIN JOURNEY STEPPER BAR */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              CLINICAL JOURNEY PROGRESSION
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+              Stage {currentStageIndex + 1} of 7: {caseRecord.workflow_stage || caseRecord.stage || 'Consultation Submitted'}
+            </span>
+          </div>
+          <span className="text-xs font-medium text-slate-500">
+            Enforced Chronological Review
+          </span>
+        </div>
+
+        {/* Stepper Steps */}
+        <div className="overflow-x-auto pb-2 pt-1 scrollbar-none">
+          <div className="min-w-[700px] flex items-center justify-between relative px-2">
+            <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-0" />
+            <div
+              className="absolute top-4 left-6 h-0.5 bg-emerald-600 -z-0 transition-all duration-300"
+              style={{
+                width: `${(Math.min(currentStageIndex, 6) / 6) * 92}%`,
+              }}
+            />
+
+            {[
+              { number: 1, label: 'Intake Received', targetId: 'initial-consultation-card' },
+              { number: 2, label: 'Case Review', targetId: 'case-review-card' },
+              { number: 3, label: 'Hospital Rec.', tabId: 'Hospital Recommendation' },
+              { number: 4, label: 'Medical Itinerary', tabId: 'Medical Itinerary' },
+              { number: 5, label: 'Accom. & Visa', tabId: 'Accommodation & Visa' },
+              { number: 6, label: 'Travel Prep', tabId: 'Travel Preparation' },
+              { number: 7, label: 'Treatment Log', tabId: 'Treatment & Recovery' },
+            ].map((step) => {
+              const access = checkAdminStepAccess(step.number, caseRecord);
+              const isCurrent = currentStageIndex + 1 === step.number;
+              const isCompleted = currentStageIndex + 1 > step.number || (step.number === 2 && !!caseRecord.review_text);
+
+              const handleStepClick = () => {
+                if (!access.allowed) {
+                  showToast(`🔒 Step ${step.number} Locked: ${access.reason}`);
+                  return;
+                }
+                if (step.targetId) {
+                  const el = document.getElementById(step.targetId);
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                } else if (step.tabId) {
+                  setActiveWorkstationTab(step.tabId);
+                  const el = document.getElementById('workstations-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
+              };
+
+              return (
+                <button
+                  key={step.number}
+                  type="button"
+                  onClick={handleStepClick}
+                  className={`relative z-10 flex flex-col items-center max-w-[95px] text-center space-y-1.5 transition-all cursor-pointer group ${
+                    !access.allowed ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all ${
+                      isCompleted
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                        : isCurrent
+                        ? 'border-blue-600 text-blue-700 bg-white ring-4 ring-blue-100 shadow-xs'
+                        : access.allowed
+                        ? 'border-slate-300 text-slate-700 bg-white'
+                        : 'border-slate-200 text-slate-400 bg-slate-100'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    ) : !access.allowed ? (
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    ) : (
+                      step.number
+                    )}
+                  </div>
+
+                  <span
+                    className={`text-[11px] font-bold leading-snug line-clamp-2 ${
+                      isCurrent
+                        ? 'text-blue-900 font-extrabold'
+                        : isCompleted
+                        ? 'text-emerald-800 font-semibold'
+                        : access.allowed
+                        ? 'text-slate-700'
+                        : 'text-slate-400'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* CARD 1: INITIAL CONSULTATION (Snapshot 1) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
+      <div id="initial-consultation-card" className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
             INITIAL CONSULTATION
@@ -659,7 +898,7 @@ export default function AdminCaseDetailPage() {
       </div>
 
       {/* CARD 3: CASE REVIEW (Snapshot 2) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-3">
+      <div id="case-review-card" className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">
             CASE REVIEW
@@ -705,7 +944,7 @@ export default function AdminCaseDetailPage() {
       </div>
 
       {/* Journey Workstation Navigation Tab Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-3.5 shadow-xs space-y-2">
+      <div id="workstations-section" className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-3.5 shadow-xs space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
@@ -727,25 +966,42 @@ export default function AdminCaseDetailPage() {
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeWorkstationTab === tab.id;
+            const stepNum = getStepNumberForTab(tab.id);
+            const access = checkAdminStepAccess(stepNum, caseRecord);
             const stageDocs = (caseRecord.documents || []).filter(
               (d) =>
                 (d.stage && d.stage.toLowerCase() === tab.id.toLowerCase()) ||
                 (d.category && d.category.toLowerCase() === tab.id.toLowerCase())
             );
+
+            const handleTabClick = () => {
+              if (!access.allowed) {
+                showToast(`🔒 Step ${stepNum} Locked: ${access.reason}`);
+                return;
+              }
+              setActiveWorkstationTab(tab.id);
+            };
+
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveWorkstationTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+                onClick={handleTabClick}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  !access.allowed
+                    ? 'bg-slate-100/70 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                    : isActive
+                    ? 'bg-blue-600 text-white shadow-xs cursor-pointer'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 cursor-pointer'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                {!access.allowed ? (
+                  <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                ) : (
+                  <Icon className="w-3.5 h-3.5" />
+                )}
                 <span>{tab.label}</span>
-                {stageDocs.length > 0 && (
+                {stageDocs.length > 0 && access.allowed && (
                   <span
                     className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
                       isActive ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'
@@ -762,6 +1018,49 @@ export default function AdminCaseDetailPage() {
 
       {/* Active Workflow Stage Section */}
       <div className="space-y-4">
+        {/* Check if currently selected workstation tab is locked */}
+        {!checkAdminStepAccess(getStepNumberForTab(activeWorkstationTab), caseRecord).allowed ? (
+          <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-4 shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto ring-8 ring-amber-50">
+              <Lock className="w-6 h-6 text-amber-600" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900">
+                Workstation Locked
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                {checkAdminStepAccess(getStepNumberForTab(activeWorkstationTab), caseRecord).reason}
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const reqStep = checkAdminStepAccess(getStepNumberForTab(activeWorkstationTab), caseRecord).requiredStep;
+                  if (reqStep === 2) {
+                    const el = document.getElementById('case-review-card');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    else setShowReviewModal(true);
+                  } else {
+                    const prevStepNum = getStepNumberForTab(activeWorkstationTab) - 1;
+                    const prevTab = [
+                      { id: 'Hospital Recommendation', step: 3 },
+                      { id: 'Medical Itinerary', step: 4 },
+                      { id: 'Accommodation & Visa', step: 5 },
+                      { id: 'Travel Preparation', step: 6 },
+                    ].find((t) => t.step === prevStepNum);
+                    if (prevTab) setActiveWorkstationTab(prevTab.id);
+                  }
+                }}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer inline-flex items-center gap-2 shadow-xs"
+              >
+                <span>Address Step {checkAdminStepAccess(getStepNumberForTab(activeWorkstationTab), caseRecord).requiredStep || (getStepNumberForTab(activeWorkstationTab) - 1)} First</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Workstation Content Component */}
         {activeWorkstationTab === 'Hospital Recommendation' && (
           <div className="space-y-4">
@@ -856,6 +1155,8 @@ export default function AdminCaseDetailPage() {
               showToast={showToast}
             />
           </div>
+        )}
+          </>
         )}
       </div>
 
