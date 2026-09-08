@@ -10,18 +10,12 @@ import { registerUser, getUserActiveCase } from '@/app/lib/firebase/services';
 function RegisterForm() {
   const router = useRouter();
 
-  // Consultation must be completed before account creation
+  // Check if signup is coming directly from a completed consultation flow via URL parameters
   const [hasCompletedConsultation] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
       const sp = new URLSearchParams(window.location.search);
-      const fromParam = sp.get('from') === 'consultation' || sp.get('consultation') === 'done';
-      const caseIdParam = sp.get('caseId');
-      const consultationSubmitted = localStorage.getItem('hw_consultation_completed') === 'true';
-      const storedCase = localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_case_id');
-      const hasStoredCase = !!storedCase && (storedCase.startsWith('case_') || storedCase.startsWith('HW-'));
-
-      return fromParam || !!caseIdParam || (consultationSubmitted && hasStoredCase);
+      return sp.get('from') === 'consultation' || sp.get('consultation') === 'done' || !!sp.get('caseId');
     } catch {
       return false;
     }
@@ -31,7 +25,7 @@ function RegisterForm() {
     if (typeof window === 'undefined') return '';
     try {
       const sp = new URLSearchParams(window.location.search);
-      return sp.get('caseId') || localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_case_id') || '';
+      return sp.get('caseId') || '';
     } catch {
       return '';
     }
@@ -41,12 +35,7 @@ function RegisterForm() {
     if (typeof window === 'undefined') return '';
     try {
       const sp = new URLSearchParams(window.location.search);
-      return (
-        sp.get('name') ||
-        sessionStorage.getItem('hw_signup_draft_fullname') ||
-        localStorage.getItem('hw_user_fullname') ||
-        ''
-      );
+      return sp.get('name') || sessionStorage.getItem('hw_signup_draft_fullname') || '';
     } catch {
       return '';
     }
@@ -60,7 +49,6 @@ function RegisterForm() {
         sp.get('email') ||
         sessionStorage.getItem('hw_signup_draft_email') ||
         sessionStorage.getItem('hw_login_not_found_user') ||
-        localStorage.getItem('hw_user_email') ||
         ''
       );
     } catch {
@@ -68,33 +56,9 @@ function RegisterForm() {
     }
   });
 
-  const [password, setPassword] = useState<string>(() => {
-    if (typeof window === 'undefined') return '';
-    try {
-      return (
-        sessionStorage.getItem('hw_signup_draft_password') ||
-        sessionStorage.getItem('hw_login_draft_password') ||
-        ''
-      );
-    } catch {
-      return '';
-    }
-  });
-
-  const [confirmPassword, setConfirmPassword] = useState<string>(() => {
-    if (typeof window === 'undefined') return '';
-    try {
-      return (
-        sessionStorage.getItem('hw_signup_draft_confirm_password') ||
-        sessionStorage.getItem('hw_signup_draft_password') ||
-        sessionStorage.getItem('hw_login_draft_password') ||
-        ''
-      );
-    } catch {
-      return '';
-    }
-  });
-
+  // Password fields are strictly empty by default and never pre-filled
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(() => {
@@ -106,7 +70,6 @@ function RegisterForm() {
     }
   });
 
-  // Persist draft changes into sessionStorage
   const handleFullNameChange = (val: string) => {
     setFullName(val);
     try { sessionStorage.setItem('hw_signup_draft_fullname', val); } catch {}
@@ -120,7 +83,6 @@ function RegisterForm() {
     }
     try {
       sessionStorage.setItem('hw_signup_draft_email', val);
-      if (val) localStorage.setItem('hw_user_email', val);
     } catch {}
   };
 
@@ -130,7 +92,6 @@ function RegisterForm() {
       setErrorMessage(null);
       try { sessionStorage.removeItem('hw_signup_error_msg'); } catch {}
     }
-    try { sessionStorage.setItem('hw_signup_draft_password', val); } catch {}
   };
 
   const handleConfirmPasswordChange = (val: string) => {
@@ -139,7 +100,6 @@ function RegisterForm() {
       setErrorMessage(null);
       try { sessionStorage.removeItem('hw_signup_error_msg'); } catch {}
     }
-    try { sessionStorage.setItem('hw_signup_draft_confirm_password', val); } catch {}
   };
 
   const handleRegister = async (e?: React.FormEvent) => {
@@ -147,7 +107,7 @@ function RegisterForm() {
       e.preventDefault();
     }
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
       const msg = 'Please provide an email address.';
       setErrorMessage(msg);
@@ -199,13 +159,11 @@ function RegisterForm() {
         try {
           sessionStorage.removeItem('hw_signup_draft_fullname');
           sessionStorage.removeItem('hw_signup_draft_email');
-          sessionStorage.removeItem('hw_signup_draft_password');
-          sessionStorage.removeItem('hw_signup_draft_confirm_password');
           sessionStorage.removeItem('hw_login_not_found_user');
           sessionStorage.removeItem('hw_signup_error_msg');
         } catch {}
 
-        const destination = res.user.role === 'admin' || cleanEmail.toLowerCase().includes('admin') ? '/admin' : '/dashboard';
+        const destination = res.user.role === 'admin' || cleanEmail.includes('admin') ? '/admin' : '/dashboard';
         router.push(destination);
         router.refresh();
         return;
@@ -245,143 +203,138 @@ function RegisterForm() {
               priority
             />
           </Link>
-          <h1 className="text-xl font-bold text-blue-950">Create Your Account</h1>
+          <h1 className="text-xl font-bold text-blue-950">
+            {hasCompletedConsultation ? 'Finalize Your Account' : 'Create Your Account'}
+          </h1>
           <p className="text-xs sm:text-sm text-gray-500 font-medium">
-            Join HealingWays to track your clinical itinerary and consultations.
+            {hasCompletedConsultation
+              ? 'Enter a password to finalize your account and access your care dashboard.'
+              : 'Join HealingWays to manage your medical consultations and track your care journey.'}
           </p>
         </div>
 
-        {/* Check if new user needs to fill consultation first */}
-        {!hasCompletedConsultation ? (
-          <div className="space-y-5">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 space-y-2.5 leading-relaxed">
-              <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
-                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-                Step 1: Consultation Intake Required
-              </div>
-              <p>
-                To provide tailored clinical evaluations, match accredited partner hospitals, and assign your dedicated case coordinator, all new patients must first complete the <strong>Consultation Intake</strong> form.
-              </p>
-              <p className="text-emerald-800">
-                Completing the consultation will immediately unlock account creation so you can track your case file and clinical itinerary.
-              </p>
+        {/* Informative Banner only when explicitly coming from consultation */}
+        {hasCompletedConsultation && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-900 leading-relaxed animate-fadeIn">
+            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block text-emerald-950">
+                Step 2: Finalize Account {caseReference ? `• Case ${caseReference}` : ''}
+              </span>
+              Consultation intake received! Create a password below to finalize your account.
             </div>
+          </div>
+        )}
 
+        {/* Error Alert Box */}
+        {errorMessage && (
+          <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Registration Form */}
+        <form onSubmit={handleRegister} className="space-y-4">
+          {/* Full Name Input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-blue-900">
+              Full Name
+            </label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => handleFullNameChange(e.target.value)}
+              placeholder="Jane Doe"
+              disabled={loading}
+              autoComplete="name"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+            />
+          </div>
+
+          {/* Email Input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-blue-900">
+              Email Address
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              placeholder="you@example.com"
+              disabled={loading}
+              autoComplete="email"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+            />
+          </div>
+
+          {/* Password Input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-blue-900">
+              Password (min. 6 characters)
+            </label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              placeholder="••••••••"
+              disabled={loading}
+              autoComplete="new-password"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+            />
+          </div>
+
+          {/* Confirm Password Input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-blue-900">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+              placeholder="••••••••"
+              disabled={loading}
+              autoComplete="new-password"
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors disabled:opacity-50 flex justify-center items-center mt-2 cursor-pointer"
+          >
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                Creating account...
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                Create Account
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            )}
+          </button>
+        </form>
+
+        {!hasCompletedConsultation && (
+          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-center space-y-1">
+            <p className="text-xs text-slate-600">Want to submit medical records and case details first?</p>
             <Link
               href={email ? `/consultation?email=${encodeURIComponent(email)}` : '/consultation'}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
             >
-              <span>Start Consultation Intake</span>
-              <ArrowRight className="w-4 h-4" />
+              Start Free Consultation Intake
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        ) : (
-          <>
-            {/* Informative Banner when consultation is completed */}
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-900 leading-relaxed animate-fadeIn">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold block text-emerald-950">
-                  Step 2: Finalize Your Account {caseReference ? `• Case ${caseReference}` : ''}
-                </span>
-                Consultation intake received! Enter a password below to finalize your account and access your patient journey dashboard.
-              </div>
-            </div>
-
-            {/* Error Alert Box */}
-            {errorMessage && (
-              <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Registration Form */}
-            <form onSubmit={handleRegister} className="space-y-4">
-              {/* Full Name Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-blue-900">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => handleFullNameChange(e.target.value)}
-                  placeholder="Jane Doe"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-                />
-              </div>
-
-              {/* Email Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-blue-900">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder="you@example.com"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-                />
-              </div>
-
-              {/* Password Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-blue-900">
-                  Password (min. 6 characters)
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                  placeholder="••••••••"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-                />
-              </div>
-
-              {/* Confirm Password Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-blue-900">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                  placeholder="••••••••"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors disabled:opacity-50 flex justify-center items-center mt-2 cursor-pointer"
-              >
-                {loading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    Creating account...
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    Create Account
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                )}
-              </button>
-            </form>
-          </>
         )}
 
         <div className="border-t border-gray-100 pt-2" />

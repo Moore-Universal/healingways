@@ -185,7 +185,7 @@ export default function JourneyDashboard() {
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             {activeCase?.case_number 
               ? `Case #${activeCase.case_number} · Stage: ${activeCase.workflow_stage || activeCase.stage}`
-              : 'Consultation active and under clinical review.'}
+              : 'No active consultation on file. Submit an intake to begin your clinical journey.'}
           </p>
         </div>
         <Link 
@@ -216,7 +216,35 @@ export default function JourneyDashboard() {
 
       {/* Active Stage Action & Guidance Banner */}
       {(() => {
-        const stepNum = activeCase ? getJourneyStepNumber(activeCase.workflow_stage || activeCase.stage) : 1;
+        if (!activeCase) {
+          return (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                  <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                  Action Required: Consultation Intake
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Start Your Medical Consultation
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  Submit your clinical details, treatment preferences, and medical records to receive senior doctor evaluations and accredited hospital options.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/consultation"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-2xs"
+                >
+                  Start Consultation Intake
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        const stepNum = getJourneyStepNumber(activeCase.workflow_stage || activeCase.stage);
         
         if (stepNum === 1) {
           return (
@@ -522,44 +550,50 @@ export default function JourneyDashboard() {
               CURRENT REQUIRED ACTION
             </span>
             <h4 className="text-base font-bold">
-              {activeCase?.workflow_stage === 'Consultation Submitted'
+              {!activeCase
+                ? 'Start Medical Consultation Intake'
+                : activeCase.workflow_stage === 'Consultation Submitted'
                 ? 'Doctor Evaluating Medical Records'
-                : activeCase?.workflow_stage === 'Case Review'
+                : activeCase.workflow_stage === 'Case Review'
                 ? 'Review Clinical Doctor Findings'
-                : activeCase?.workflow_stage === 'Hospital Recommendation'
+                : activeCase.workflow_stage === 'Hospital Recommendation'
                 ? 'Select Your Hospital Option'
-                : activeCase?.workflow_stage === 'Medical Itinerary'
+                : activeCase.workflow_stage === 'Medical Itinerary'
                 ? 'Confirm Your Treatment Itinerary'
-                : activeCase?.workflow_stage === 'Accommodation & Visa'
+                : activeCase.workflow_stage === 'Accommodation & Visa'
                 ? 'Review Accommodation & Visa'
-                : activeCase?.workflow_stage === 'Travel Preparation'
+                : activeCase.workflow_stage === 'Travel Preparation'
                 ? 'Complete Travel Readiness Checklist'
                 : 'Follow Active Recovery Progress'}
             </h4>
             <p className="text-xs text-emerald-100/80 leading-relaxed">
-              HealingWays requires sequential confirmation to protect your health and schedule before moving to subsequent steps.
+              {!activeCase
+                ? 'Submit your medical intake details and diagnostic records to begin your guided clinical journey.'
+                : 'HealingWays requires sequential confirmation to protect your health and schedule before moving to subsequent steps.'}
             </p>
           </div>
 
           <Link
             href={
-              activeCase?.workflow_stage === 'Case Review'
+              !activeCase
+                ? '/consultation'
+                : activeCase.workflow_stage === 'Case Review'
                 ? '/dashboard/case-review'
-                : activeCase?.workflow_stage === 'Hospital Recommendation'
+                : activeCase.workflow_stage === 'Hospital Recommendation'
                 ? '/dashboard/recommendations'
-                : activeCase?.workflow_stage === 'Medical Itinerary'
+                : activeCase.workflow_stage === 'Medical Itinerary'
                 ? '/dashboard/medical-itinerary'
-                : activeCase?.workflow_stage === 'Accommodation & Visa'
+                : activeCase.workflow_stage === 'Accommodation & Visa'
                 ? '/dashboard/accommodation'
-                : activeCase?.workflow_stage === 'Travel Preparation'
+                : activeCase.workflow_stage === 'Travel Preparation'
                 ? '/dashboard/travel-preparation'
-                : activeCase?.workflow_stage === 'Treatment & Recovery'
+                : activeCase.workflow_stage === 'Treatment & Recovery'
                 ? '/dashboard/treatment-recovery'
                 : '/dashboard/case-review'
             }
             className="w-full sm:w-auto px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer self-start"
           >
-            <span>Proceed to Active Step</span>
+            <span>{!activeCase ? 'Start Consultation' : 'Proceed to Active Step'}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

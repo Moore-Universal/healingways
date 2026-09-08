@@ -602,13 +602,27 @@ export async function loginUser(emailInput: string, passwordInput: string): Prom
     };
   }
 
+  // Clear previous session's transient active case cache so new user gets fresh data
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('hw_active_case');
+      localStorage.removeItem('hw_active_case_id');
+      localStorage.removeItem('hw_consultation_completed');
+      localStorage.removeItem('hw_consultation_completed_case_id');
+      localStorage.removeItem('hw_consultation_form_data');
+      localStorage.removeItem('hw_consultation_current_step');
+      localStorage.removeItem('hw_consultation_case_id');
+      sessionStorage.clear();
+    } catch {}
+  }
+
   // 4. Set stored session and return success
   setStoredUser(firestoreUserDoc);
   return { success: true, user: firestoreUserDoc };
 }
 
 /**
- * Log out user from both Firebase Auth and stored local session
+ * Log out user from both Firebase Auth and stored local session, completely wiping browser session data
  */
 export async function logoutUser(): Promise<void> {
   try {
@@ -618,34 +632,27 @@ export async function logoutUser(): Promise<void> {
   }
   setStoredUser(null);
   if (typeof window !== 'undefined') {
-    // Clear all consultation draft & submission state
-    localStorage.removeItem('hw_consultation_form_data');
-    localStorage.removeItem('hw_consultation_current_step');
-    localStorage.removeItem('hw_consultation_case_id');
-    localStorage.removeItem('hw_consultation_completed');
-    localStorage.removeItem('hw_consultation_completed_case_id');
-    localStorage.removeItem('hw_active_case_id');
-    localStorage.removeItem('hw_active_case');
-    localStorage.removeItem('hw_user_fullname');
-
-    // Clear user tokens & profile keys
-    localStorage.removeItem('hw_user');
-    localStorage.removeItem('hw_user_token');
-    localStorage.removeItem('hw_user_email');
-    localStorage.removeItem('hw_user_role');
-    localStorage.removeItem('hw_user_name');
-    localStorage.removeItem('hw_user_id');
-    localStorage.removeItem('hw_active_user');
-    localStorage.removeItem('hw_admin_auth');
-
-    // Clear draft credentials and notification state
     try {
+      // Preserve local user accounts registry & static catalogue items
+      const reg = localStorage.getItem(REGISTERED_USERS_KEY);
+      const hospitals = localStorage.getItem('hw_custom_hospitals');
+      const accom = localStorage.getItem('hw_custom_accommodations');
+
+      // Wipe entire storage clean to prevent cross-account session leakage
+      localStorage.clear();
       sessionStorage.clear();
-    } catch {}
+
+      if (reg) localStorage.setItem(REGISTERED_USERS_KEY, reg);
+      if (hospitals) localStorage.setItem('hw_custom_hospitals', hospitals);
+      if (accom) localStorage.setItem('hw_custom_accommodations', accom);
+    } catch (clearErr) {
+      console.warn('Notice clearing browser storage on logout:', clearErr);
+    }
 
     broadcastSyncEvent({ type: 'auth_logout' });
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('hw_auth_changed', { detail: null }));
+    window.dispatchEvent(new CustomEvent('hw_case_updated', { detail: null }));
   }
 }
 
@@ -862,34 +869,20 @@ export async function getUserActiveCase(userId?: string | null, userEmail?: stri
     console.warn('Error fetching active case from Firestore:', err);
   }
 
-  // Check local active case backup if matching user or stored case ID
+  // Check local active case backup ONLY IF it strictly belongs to this authenticated user
   if (typeof window !== 'undefined') {
     try {
-      const activeCaseId = localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_completed_case_id');
-      if (activeCaseId) {
-        const found = await getCaseById(activeCaseId);
-        if (found) {
-          if (effectiveUid && !found.user_id) {
-            found.user_id = effectiveUid;
-            updatePatientCase(found.id, { user_id: effectiveUid }).catch(() => {});
-          }
-          return found;
-        }
-      }
-
       const stored = localStorage.getItem('hw_active_case');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          !effectiveUid ||
-          parsed.user_id === effectiveUid ||
-          (effectiveEmail && parsed.patient_email?.toLowerCase() === effectiveEmail.toLowerCase())
-        ) {
-          return parsed as PatientCase;
+        const parsed = JSON.parse(stored) as PatientCase;
+        const matchesUid = effectiveUid && parsed.user_id === effectiveUid;
+        const matchesEmail = effectiveEmail && parsed.patient_email?.toLowerCase() === effectiveEmail.toLowerCase();
+        if (matchesUid || matchesEmail) {
+          return parsed;
         }
       }
 
-      // Check all cached cases
+      // Check all cached cases strictly matching user identity
       const allCasesRaw = localStorage.getItem('hw_all_cases');
       if (allCasesRaw) {
         const allCases: PatientCase[] = JSON.parse(allCasesRaw);
@@ -915,6 +908,12 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
   const effectiveUid = userId || getCurrentUserId();
   const effectiveEmail = userEmail || getCurrentUserEmail();
 
+  if (!effectiveUid && !effectiveEmail) {
+    return [];
+  }
+
+  const cleanEmail = effectiveEmail?.trim().toLowerCase();
+
   try {
     const casesRef = collection(db, 'cases');
     const casesMap = new Map<string, PatientCase>();
@@ -933,9 +932,9 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
       }
     }
 
-    if (effectiveEmail) {
+    if (cleanEmail) {
       try {
-        const qEmail = query(casesRef, where('patient_email', '==', effectiveEmail));
+        const qEmail = query(casesRef, where('patient_email', '==', cleanEmail));
         const snapshot = await withTimeout(getDocs(qEmail), 3000, null);
         if (snapshot && !snapshot.empty) {
           snapshot.docs.forEach((d) => {
@@ -956,14 +955,11 @@ export async function getUserCases(userId?: string | null, userEmail?: string | 
     console.warn('Error fetching user cases from Firestore:', err);
   }
 
-  // Check local active case backup
+  // Check local active case backup strictly matching user
   if (typeof window !== 'undefined') {
     try {
-      const activeCaseId = localStorage.getItem('hw_active_case_id') || localStorage.getItem('hw_consultation_completed_case_id');
-      if (activeCaseId) {
-        const found = await getCaseById(activeCaseId);
-        if (found) return [found];
-      }
+      const active = await getUserActiveCase(effectiveUid, cleanEmail);
+      if (active) return [active];
     } catch {}
   }
 
@@ -1119,7 +1115,7 @@ export function subscribeToUserActiveCase(
 
   // 1. Initial fetch from getUserActiveCase
   getUserActiveCase(effectiveUid, effectiveEmail).then((initialCase) => {
-    if (!isUnsubscribed && initialCase) {
+    if (!isUnsubscribed) {
       onUpdate(initialCase);
     }
   });
@@ -1128,7 +1124,7 @@ export function subscribeToUserActiveCase(
   const handleLocalUpdate = () => {
     if (isUnsubscribed) return;
     getUserActiveCase(effectiveUid, effectiveEmail).then((updated) => {
-      if (!isUnsubscribed && updated) onUpdate(updated);
+      if (!isUnsubscribed) onUpdate(updated);
     });
   };
 

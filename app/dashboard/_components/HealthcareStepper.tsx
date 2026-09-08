@@ -74,19 +74,22 @@ export default function HealthcareStepper({
     };
   }, [initialCase]);
 
-  // Compute the user's real progression stage in their medical journey (1 to 7)
+  // Compute the user's real progression stage in their medical journey (1 to 7, or 0 if no consultation)
+  const hasActiveCase = !!caseRecord;
   const actualStageNumber = journeyStage
     ? typeof journeyStage === 'number'
       ? journeyStage
       : getJourneyStepNumber(journeyStage)
     : caseRecord
     ? getJourneyStepNumber(caseRecord.workflow_stage || caseRecord.stage)
-    : 1;
+    : 0;
 
   // Max unlocked step in the journey
-  const maxUnlockedStep = Math.max(actualStageNumber, 1);
+  const maxUnlockedStep = actualStageNumber > 0 ? actualStageNumber : 1;
 
-  const currentStageStepObj = steps.find((s) => s.number === actualStageNumber) || steps[0];
+  const currentStageStepObj = actualStageNumber > 0
+    ? steps.find((s) => s.number === actualStageNumber) || steps[0]
+    : null;
 
   return (
     <div
@@ -97,10 +100,17 @@ export default function HealthcareStepper({
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
             YOUR HEALTHCARE JOURNEY
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-            Stage {actualStageNumber} of 7: {currentStageStepObj.label}
-          </span>
+          {actualStageNumber > 0 && currentStageStepObj ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+              Stage {actualStageNumber} of 7: {currentStageStepObj.label}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+              Consultation Intake Pending
+            </span>
+          )}
         </div>
 
         {caseRecord?.case_number && (
@@ -131,23 +141,28 @@ export default function HealthcareStepper({
           <div
             className="absolute top-4 left-8 h-0.5 bg-emerald-600 -z-0 transition-all duration-300"
             style={{
-              width: `${
-                ((Math.min(actualStageNumber, steps.length) - 1) / (steps.length - 1)) * 92
-              }%`,
+              width: actualStageNumber > 0
+                ? `${((Math.min(actualStageNumber, steps.length) - 1) / (steps.length - 1)) * 92}%`
+                : '0%',
             }}
           />
 
           {steps.map((step) => {
-            const isCompleted = step.number < actualStageNumber;
-            const isCurrentJourneyStage = step.number === actualStageNumber;
+            const isCompleted = actualStageNumber > 0 && step.number < actualStageNumber;
+            const isCurrentJourneyStage = actualStageNumber > 0 && step.number === actualStageNumber;
             const isCurrentPage = step.href === pathname;
-            const isUnlocked = step.number <= maxUnlockedStep;
+            const isUnlocked = hasActiveCase ? step.number <= maxUnlockedStep : step.number === 1;
 
             const handleClick = (e: React.MouseEvent) => {
+              if (!hasActiveCase && step.number > 1) {
+                e.preventDefault();
+                setLockedNotice('Please submit your consultation intake to unlock the stages of your healthcare journey.');
+                return;
+              }
               if (!isUnlocked) {
                 e.preventDefault();
                 setLockedNotice(
-                  `Step ${step.number} (${step.label}) is locked. Complete Step ${actualStageNumber} (${currentStageStepObj.label}) to progress.`
+                  `Step ${step.number} (${step.label}) is locked. Complete Step ${actualStageNumber} (${currentStageStepObj?.label || 'Intake'}) to progress.`
                 );
               }
             };
@@ -155,7 +170,7 @@ export default function HealthcareStepper({
             return (
               <Link
                 key={step.number}
-                href={step.href}
+                href={!hasActiveCase && step.number === 1 ? '/consultation' : step.href}
                 onClick={handleClick}
                 className={`relative z-10 flex flex-col items-center max-w-[90px] sm:max-w-[100px] text-center space-y-2 group transition-all ${
                   isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'

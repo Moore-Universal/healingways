@@ -21,14 +21,7 @@ export default function PatientLoginForm() {
     }
   });
 
-  const [password, setPassword] = useState<string>(() => {
-    if (typeof window === 'undefined') return '';
-    try {
-      return sessionStorage.getItem('hw_login_draft_password') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [password, setPassword] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +43,7 @@ export default function PatientLoginForm() {
     }
   });
 
-  // Persist draft changes into sessionStorage
+  // Handle email changes
   const handleEmailChange = (val: string) => {
     setIdentifier(val);
     if (notFoundUser) {
@@ -73,9 +66,6 @@ export default function PatientLoginForm() {
       setErrorMessage(null);
       try { sessionStorage.removeItem('hw_login_error_msg'); } catch {}
     }
-    try {
-      sessionStorage.setItem('hw_login_draft_password', val);
-    } catch {}
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -110,9 +100,7 @@ export default function PatientLoginForm() {
       const res = await loginUser(cleanEmail, password);
 
       if (res.success && res.user) {
-        // Clean up draft passwords & errors upon successful authentication
         try {
-          sessionStorage.removeItem('hw_login_draft_password');
           sessionStorage.removeItem('hw_login_not_found_user');
           sessionStorage.removeItem('hw_login_error_msg');
         } catch {}
@@ -128,9 +116,6 @@ export default function PatientLoginForm() {
         try {
           sessionStorage.setItem('hw_login_not_found_user', cleanEmail);
           sessionStorage.setItem('hw_signup_draft_email', cleanEmail);
-          if (password) {
-            sessionStorage.setItem('hw_signup_draft_password', password);
-          }
         } catch {}
       } else if (res.reason === 'wrong_password') {
         const msg = 'Incorrect password. Please verify your credentials and try again.';
@@ -156,9 +141,6 @@ export default function PatientLoginForm() {
     try {
       sessionStorage.setItem('hw_signup_draft_email', targetEmail);
       localStorage.setItem('hw_user_email', targetEmail);
-      if (password) {
-        sessionStorage.setItem('hw_signup_draft_password', password);
-      }
     } catch {}
     router.push(`/consultation?email=${encodeURIComponent(targetEmail)}`);
   };
@@ -275,14 +257,14 @@ export default function PatientLoginForm() {
           <p className="text-xs text-gray-600">
             Don&apos;t have an account?{' '}
             <Link
-              href={identifier ? `/consultation?email=${encodeURIComponent(identifier)}` : '/consultation'}
+              href={identifier ? `/signup?email=${encodeURIComponent(identifier)}` : '/signup'}
               className="font-bold text-emerald-700 hover:underline"
             >
-              Start Consultation &amp; Sign Up
+              Create an Account
             </Link>
           </p>
           <p className="text-xs text-gray-500">
-            Need immediate medical guidance?{' '}
+            Need immediate clinical guidance?{' '}
             <Link
               href="/consultation"
               className="font-medium text-blue-900 hover:underline"
