@@ -482,6 +482,12 @@ export async function getUserProfileByEmail(email: string): Promise<UserProfile 
   return null;
 }
 
+export function isAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return clean === 'admin@mail.com' || clean === 'dsgn.moore.usl@gmail.com' || clean.includes('admin');
+}
+
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   const user = auth.currentUser;
   if (user) {
@@ -491,7 +497,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       uid: user.uid,
       email: user.email || '',
       fullName: user.displayName || user.email?.split('@')[0] || 'Patient',
-      role: user.email?.toLowerCase().includes('admin') ? 'admin' : 'patient',
+      role: isAdminEmail(user.email) ? 'admin' : 'patient',
     };
   }
 
@@ -515,7 +521,7 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { uid: str
     const userRef = doc(db, 'users', profile.uid);
     const now = new Date().toISOString();
     const cleanEmail = profile.email.trim().toLowerCase();
-    const role = profile.role || (cleanEmail.includes('admin') ? 'admin' : 'patient');
+    const role = profile.role || (isAdminEmail(cleanEmail) ? 'admin' : 'patient');
 
     const dataToSave = {
       ...profile,
@@ -581,7 +587,7 @@ export async function registerUser(params: {
   phone?: string;
 }): Promise<AuthResult> {
   const cleanEmail = params.email.trim().toLowerCase();
-  const role = params.role || (cleanEmail.includes('admin') ? 'admin' : 'patient');
+  const role = params.role || (isAdminEmail(cleanEmail) ? 'admin' : 'patient');
 
   // 1. Check if a registered account with a password already exists
   const existing = await getUserProfileByEmail(cleanEmail);
@@ -693,6 +699,36 @@ export async function registerUser(params: {
  */
 export async function loginUser(emailInput: string, passwordInput: string): Promise<AuthResult> {
   const cleanEmail = emailInput.trim().toLowerCase();
+
+  // Special handling for requested Admin credentials: dsgn.moore.usl@gmail.com / moore_USL@123
+  if (cleanEmail === 'dsgn.moore.usl@gmail.com') {
+    if (passwordInput === 'moore_USL@123') {
+      const now = new Date().toISOString();
+      const adminProfile: UserProfile = {
+        uid: 'admin_moore_uid',
+        email: 'dsgn.moore.usl@gmail.com',
+        fullName: 'Moore Admin',
+        role: 'admin',
+        createdAt: now,
+        updatedAt: now,
+      };
+      setStoredUser(adminProfile);
+      saveLocalRegisteredUser({
+        ...adminProfile,
+        password: 'moore_USL@123',
+      });
+      try {
+        saveUserProfile(adminProfile);
+      } catch {}
+      return { success: true, user: adminProfile };
+    } else {
+      return {
+        success: false,
+        reason: 'wrong_password',
+        error: 'Incorrect password for dsgn.moore.usl@gmail.com.',
+      };
+    }
+  }
 
   // Special handling for requested Admin credentials: admin@mail.com / admin
   if (cleanEmail === 'admin@mail.com') {

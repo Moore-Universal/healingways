@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { ShieldCheck, Lock, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { AdminHeader } from './_components/admin-header';
 import { AdminSidebar } from './_components/admin-sidebar';
-import { getStoredUser, loginUser, UserProfile } from '@/app/lib/firebase/services';
+import { getStoredUser, loginUser, isAdminEmail, UserProfile } from '@/app/lib/firebase/services';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,15 +14,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminUser, setAdminUser] = useState<UserProfile | null>(null);
 
   // Admin login credentials state
-  const [adminEmail, setAdminEmail] = useState('admin@mail.com');
-  const [adminPassword, setAdminPassword] = useState('admin');
+  const [adminEmail, setAdminEmail] = useState('dsgn.moore.usl@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('moore_USL@123');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = () => {
       const user = getStoredUser();
-      if (user && (user.role === 'admin' || user.email.toLowerCase() === 'admin@mail.com')) {
+      if (user && (user.role === 'admin' || isAdminEmail(user.email))) {
         setAdminUser(user);
       } else {
         setAdminUser(null);
@@ -48,10 +48,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     try {
       const res = await loginUser(adminEmail.trim(), adminPassword);
-      if (res.success && res.user && (res.user.role === 'admin' || res.user.email.toLowerCase() === 'admin@mail.com')) {
+      if (res.success && res.user && (res.user.role === 'admin' || isAdminEmail(res.user.email))) {
         setAdminUser(res.user);
       } else {
-        setLoginError(res.error || 'Invalid administrator credentials. Expected admin@mail.com / admin.');
+        setLoginError(res.error || 'Invalid administrator credentials.');
       }
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span>Admin Credentials</span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Email: <strong className="text-white">admin@mail.com</strong> | Password: <strong className="text-white">admin</strong>
+              Email: <strong className="text-white">dsgn.moore.usl@gmail.com</strong> | Password: <strong className="text-white">moore_USL@123</strong>
             </p>
           </div>
 
@@ -115,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 required
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
-                placeholder="admin@mail.com"
+                placeholder="dsgn.moore.usl@gmail.com"
                 className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
@@ -129,7 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 required
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="admin"
+                placeholder="moore_USL@123"
                 className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>

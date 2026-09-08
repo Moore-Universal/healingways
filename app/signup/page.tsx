@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { registerUser, getUserActiveCase } from '@/app/lib/firebase/services';
+import { registerUser, getUserActiveCase, isAdminEmail } from '@/app/lib/firebase/services';
 
 function RegisterForm() {
   const router = useRouter();
@@ -177,7 +177,7 @@ function RegisterForm() {
           sessionStorage.removeItem('hw_signup_error_msg');
         } catch {}
 
-        const destination = res.user.role === 'admin' || cleanEmail.includes('admin') ? '/admin' : '/dashboard';
+        const destination = res.user.role === 'admin' || isAdminEmail(cleanEmail) ? '/admin' : '/dashboard';
         router.push(destination);
         router.refresh();
         return;

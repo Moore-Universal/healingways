@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserX, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
-import { loginUser } from '@/app/lib/firebase/services';
+import { loginUser, isAdminEmail } from '@/app/lib/firebase/services';
 
 export default function PatientLoginForm() {
   const router = useRouter();
@@ -105,7 +105,7 @@ export default function PatientLoginForm() {
           sessionStorage.removeItem('hw_login_error_msg');
         } catch {}
 
-        const destination = res.user.role === 'admin' || cleanEmail.toLowerCase().includes('admin') ? '/admin' : '/dashboard';
+        const destination = res.user.role === 'admin' || isAdminEmail(cleanEmail) ? '/admin' : '/dashboard';
         router.push(destination);
         router.refresh();
         return;

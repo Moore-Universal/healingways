@@ -56,41 +56,41 @@ export default function HeroSection() {
 
           {/* Right Image Graphic & Tooltips */}
           <div className="lg:col-span-6 relative flex justify-center items-center mt-8 lg:mt-0">
-            {/* Circular background highlight for the portrait */}
-            <div className="absolute w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] bg-[#1e75ff] rounded-full z-0 translate-y-2 sm:translate-y-4" />
+            {/* Background highlight glow */}
+            <div className="absolute w-[300px] h-[300px] sm:w-[420px] sm:h-[420px] bg-[#1e75ff]/80 rounded-full z-0 filter blur-2xl opacity-60" />
 
-            <div className="relative z-10 w-full max-w-lg flex justify-center">
+            <div className="relative z-10 w-full max-w-lg flex justify-center items-center">
               <Image
                 src="/images/hero-image.png"
-                alt="Patient guided by healthcare service"
-                width={520}
-                height={620}
-                className="object-contain relative z-10 opacity-90 brightness-95"
+                alt="Patient guided by Healingways healthcare service"
+                width={450}
+                height={530}
+                className="w-full h-auto max-w-[400px] object-contain relative z-10 drop-shadow-xl"
                 priority
               />
 
               {/* Floating Node Tag 1 (Left side) */}
-              <div className="absolute left-2 sm:left-6 bottom-32 z-20 flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
-                <span className="text-xs text-white/90 font-light whitespace-nowrap">
+              <div className="absolute -left-2 sm:-left-6 bottom-24 z-20 flex items-center gap-2 px-3.5 py-2 bg-slate-900/80 backdrop-blur-md rounded-xl border border-white/20 shadow-xl">
+                <span className="text-xs text-white font-medium whitespace-nowrap">
                   You don't have to figure it out alone
                 </span>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0 animate-pulse" />
               </div>
 
               {/* Floating Node Tag 2 (Top right) */}
-              <div className="absolute right-4 sm:right-0 top-40 z-20 flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
-                <span className="text-xs text-white/90 font-light whitespace-nowrap">
+              <div className="absolute -right-2 sm:-right-6 top-8 z-20 flex items-center gap-2 px-3.5 py-2 bg-slate-900/80 backdrop-blur-md rounded-xl border border-white/20 shadow-xl">
+                <span className="text-xs text-white font-medium whitespace-nowrap">
                   Healingways makes connection
                 </span>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0 animate-pulse" />
               </div>
 
               {/* Floating Node Tag 3 (Bottom right) */}
-              <div className="absolute right-8 sm:right-14 bottom-16 z-20 flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
-                <span className="text-xs text-white/90 font-light whitespace-nowrap">
-                  Healthcare tourism can feel impossible
+              <div className="absolute right-2 sm:right-0 -bottom-4 z-20 flex items-center gap-2 px-3.5 py-2 bg-slate-900/80 backdrop-blur-md rounded-xl border border-white/20 shadow-xl">
+                <span className="text-xs text-white font-medium whitespace-nowrap">
+                  Seamless medical tourism navigation
                 </span>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3cd070] shrink-0 animate-pulse" />
               </div>
             </div>
           </div>
