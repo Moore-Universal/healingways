@@ -137,10 +137,7 @@ export default function TravelPreparationPage() {
   const isTravelConfirmed = !!activeCase?.confirmed_by_patient;
   const isDeclined = !!activeCase?.travel_declined;
 
-  const flightText = activeCase?.flight_details || `Flight: Qatar Airways QR-702 (Direct Comfort / Extra Legroom Assigned)
-Departure: San Francisco (SFO) → Transit Doha (DOH) → Chennai (MAA)
-Airport VIP Concierge: Dedicated airport escort with motorized cart and wheelchair assistance upon touchdown.
-Ground Transfer: Private climate-controlled medical van from Chennai Airport directly to Somerset Grand Suites.`;
+  const flightText = activeCase?.flight_details || '';
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen p-4 sm:p-8 md:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full font-sans">
@@ -152,7 +149,7 @@ Ground Transfer: Private climate-controlled medical van from Chennai Airport dir
             Travel Preparation &amp; Flight Logistics
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Case {activeCase?.case_number || 'HW-2026-531971'} · Safe journey clearance and arrival assistance
+            Case {activeCase?.case_number || activeCase?.id || 'Active Case'} · Safe journey clearance and arrival assistance
           </p>
         </div>
         <Link 
@@ -204,7 +201,11 @@ Ground Transfer: Private climate-controlled medical van from Chennai Airport dir
               </div>
 
               <div className="p-5 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
-                {flightText}
+                {flightText ? (
+                  flightText
+                ) : (
+                  <span className="text-slate-400 italic font-sans">No flight or travel details provided yet by your care team.</span>
+                )}
               </div>
 
               {/* Supplementary Documents for Travel Preparation */}

@@ -97,7 +97,7 @@ export default function TreatmentRecoveryPage() {
             Treatment &amp; Recovery Monitoring
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Case {activeCase?.case_number || 'HW-2026-531971'} · Active clinical log &amp; rehabilitation updates
+            Case {activeCase?.case_number || activeCase?.id || 'Active Case'} · Active clinical log &amp; rehabilitation updates
           </p>
         </div>
         <Link 

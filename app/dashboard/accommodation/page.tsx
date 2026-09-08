@@ -130,14 +130,8 @@ export default function AccommodationPage() {
   const isAccomConfirmed = !!activeCase?.accommodation_visa_confirmed_by_patient;
   const isDeclined = !!activeCase?.accommodation_visa_declined;
 
-  const accommodationText = activeCase?.accommodation_details || `Hotel Partner: Somerset Grand Serviced Suites (500m from Hospital)
-Room Type: Deluxe Executive 1-Bedroom Suite with kitchen & accessible bathroom
-Duration: 12 Nights (Pre-admission & Post-op Recovery)
-Amenities: Daily sanitized housekeeping, wheelchair accessible elevators, 24/7 on-call coordinator, complimentary hospital shuttle.`;
-
-  const visaText = activeCase?.visa_details || `Visa Category: Medical Visa (Type M) - Priority Expedited Stream
-Invitation Letter: Hospital Medical Visa Invitation Letter generated and certified with government health registry.
-Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 hrs). Dedicated visa liaison assigned.`;
+  const accommodationText = activeCase?.accommodation_details || '';
+  const visaText = activeCase?.visa_details || '';
 
   return (
     <div className="p-4 sm:p-8 md:p-10 max-w-7xl mx-auto w-full font-sans space-y-6 sm:space-y-8">
@@ -200,8 +194,12 @@ Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 h
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100">
-                {accommodationText}
+              <div className="p-4 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
+                {accommodationText ? (
+                  accommodationText
+                ) : (
+                  <span className="text-slate-400 italic font-sans">No accommodation details provided yet by your care team.</span>
+                )}
               </div>
             </div>
 
@@ -223,8 +221,12 @@ Embassy Status: Approved for e-Medical Visa processing (Est. turnaround: 48-72 h
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100">
-                {visaText}
+              <div className="p-4 bg-slate-50 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
+                {visaText ? (
+                  visaText
+                ) : (
+                  <span className="text-slate-400 italic font-sans">No visa details provided yet by your care team.</span>
+                )}
               </div>
             </div>
 

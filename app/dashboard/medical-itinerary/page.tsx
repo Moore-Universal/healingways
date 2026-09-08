@@ -129,13 +129,7 @@ export default function MedicalItineraryPage() {
   // 2. Stage 3 (Hospital) selected
   const isItineraryConfirmed = !!activeCase?.itinerary_confirmed_by_patient;
   const isDeclined = !!activeCase?.itinerary_declined;
-  const itineraryText = activeCase?.itinerary_notes || `Day 1: Arrival & Hospital Transfer, Comprehensive Pre-operative Diagnostic Screening (Blood panel, ECG, digital imaging).
-Day 2: Specialist Consultation with Surgical Chief, Pre-anesthesia Evaluation & Final Surgical Planning.
-Day 3: Scheduled Surgical Procedure in Dedicated Robotic Theater (Est. 2.5 hrs). Post-op Recovery in High Dependency Unit.
-Day 4-6: Inpatient Hospital Room Recovery, Assisted Physical Mobilization & Continuous Vital Monitoring.
-Day 7: Discharge to Partner Recovery Suite with Daily Nurse Check-ins & Physical Therapy.
-Day 10: Follow-up Clinical Consultation & Suture Inspection.
-Day 12: Fit-to-Fly Certification & Airport Departure Transfer.`;
+  const itineraryText = activeCase?.itinerary_notes || '';
 
   return (
     <div className="p-4 sm:p-8 md:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full font-sans">
@@ -147,7 +141,7 @@ Day 12: Fit-to-Fly Certification & Airport Departure Transfer.`;
             Medical Itinerary &amp; Care Schedule
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Case {activeCase?.case_number || 'HW-2026-531971'} · Coordinated with {activeCase?.selected_hospital?.name || 'Selected Hospital'}
+            Case {activeCase?.case_number || activeCase?.id || 'Active Case'} · Coordinated with {activeCase?.selected_hospital?.name || 'Selected Hospital'}
           </p>
         </div>
         <Link 
@@ -214,7 +208,11 @@ Day 12: Fit-to-Fly Certification & Airport Departure Transfer.`;
                 Detailed Medical Schedule
               </h4>
               <div className="p-5 bg-slate-50 rounded-xl text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line border border-slate-100 font-mono">
-                {itineraryText}
+                {itineraryText ? (
+                  itineraryText
+                ) : (
+                  <span className="text-slate-400 italic font-sans">No itinerary details provided yet by your care team.</span>
+                )}
               </div>
 
               {/* Supplementary Documents for Medical Itinerary */}
